@@ -1,0 +1,6 @@
+<RCC>
+    <qresource>
+        <file alias="whitney.otf">../assets/fonts/whitney.otf</file>
+        <file alias="plume-style.css">../assets/style/plume-style.css</file>
+    </qresource>
+</RCC>

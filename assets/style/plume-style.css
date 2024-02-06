@@ -1,0 +1,32 @@
+.plume {
+    background-color: #141519;
+}
+
+.bottombar {
+    background-color: blue;
+}
+
+.bar-button {
+    background-color: green;
+    font-family: "Whitney"; 
+    font-size: 16px;
+    color: #feffff;
+    border-radius: 32px;
+}
+
+.home {
+    background-color: yellow;
+}
+
+.calendar {
+    background-color: orange;
+}
+
+.calendar-scroll {
+    background-color: orange;
+    border: none;
+}
+
+.mail {
+    background-color: red;
+}

@@ -11,7 +11,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 COMPONENTS Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Widgets Network REQUIRED)
 
 set(SOURCES
     "src/main.cpp"
@@ -22,8 +22,9 @@ set(SOURCES
     "src/widgets/calendar/calendar.cpp"
     "src/widgets/mail/mail.cpp"
 
-    "lib/icalendarlib/icalendar.cpp"
-    "lib/icalendarlib/types.cpp"
+    "libs/icalendarlib/icalendar.cpp"
+    "libs/icalendarlib/date.cpp"
+    "libs/icalendarlib/types.cpp"
 )
 
 set(HEADERS
@@ -34,13 +35,15 @@ set(HEADERS
     "src/widgets/calendar/calendar.h"
     "src/widgets/mail/mail.h"
 
-    "lib/icalendarlib/icalendar.h"
+    "libs/icalendarlib/icalendar.h"
+    "libs/icalendarlib/date.h"
 )
 
 qt_add_resources(SOURCES "src/plume.qrc")
 
-target_include_directories(Plume "lib/")
+include_directories("libs/")
 
 add_executable(Plume ${SOURCES} ${HEADERS})
 
 target_link_libraries(Plume Qt6::Widgets)
+target_link_libraries(Plume Qt6::Network)

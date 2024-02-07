@@ -25,7 +25,6 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          git submodule update --recursive --remote --init
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release ..
           cmake --build . --parallel $(nproc)

@@ -57,10 +57,6 @@ Calendar::Calendar(QWidget *parent)
     lay->addWidget(header);
     lay->addWidget(scroll);
 
-
-
-
-
     setProperty("class", "calendar");
     setAttribute(Qt::WA_StyledBackground);
 }

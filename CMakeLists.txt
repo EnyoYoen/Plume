@@ -21,6 +21,9 @@ set(SOURCES
     "src/widgets/home/home.cpp"
     "src/widgets/calendar/calendar.cpp"
     "src/widgets/mail/mail.cpp"
+
+    "lib/icalendarlib/icalendar.cpp"
+    "lib/icalendarlib/types.cpp"
 )
 
 set(HEADERS
@@ -30,9 +33,13 @@ set(HEADERS
     "src/widgets/home/home.h"
     "src/widgets/calendar/calendar.h"
     "src/widgets/mail/mail.h"
+
+    "lib/icalendarlib/icalendar.h"
 )
 
 qt_add_resources(SOURCES "src/plume.qrc")
+
+target_include_directories(Plume "lib/")
 
 add_executable(Plume ${SOURCES} ${HEADERS})
 

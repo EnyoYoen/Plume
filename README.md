@@ -10,9 +10,9 @@
  - [License](#license)
 
 ## Download
-- [Windows](https://nightly.link/EnyoYoen/Plume/workflows/build-windows/master/Galaxy%20-%20Windows%20x64.zip)
-- [MacOs](https://nightly.link/EnyoYoen/Plume/workflows/build-macos/master/Galaxy%20-%20MacOs%20x64.zip)
-- [Linux](https://nightly.link/EnyoYoen/Plume/workflows/build-linux/master/Galaxy%20-%20Linux%20x64.zip) 
+- [Windows](https://nightly.link/EnyoYoen/Plume/workflows/build-windows/master/Plume%20-%20Windows%20x64.zip)
+- [MacOs](https://nightly.link/EnyoYoen/Plume/workflows/build-macos/master/Plume%20-%20MacOs%20x64.zip)
+- [Linux](https://nightly.link/EnyoYoen/Plume/workflows/build-linux/master/Plume%20-%20Linux%20x64.zip) 
 
 For Linux and MacOs, you need to install some dependencies :  
 - On Ubuntu 22.04 or later
@@ -25,7 +25,7 @@ $ brew install qt6 libpthread-stubs
 ```
 
 Plume is available for Windows (x64), Linux (x64) and MacOs (x64) for now.  
-You can compile Galaxy if it is not available for your operating system or your arch : [Build and Run](#build-and-run).
+You can compile Plume if it is not available for your operating system or your arch : [Build and Run](#build-and-run).
 
 ## Build and Run
 ### Dependencies
@@ -94,3 +94,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+

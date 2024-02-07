@@ -4,6 +4,7 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QScrollArea>
+#include <QNetworkAccessManager>
 
 class Calendar : public QWidget
 {
@@ -15,7 +16,8 @@ public:
 private:
     const char* days[8] = {"", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
 
-    QVBoxLayout *lay = nullptr;
+    QNetworkAccessManager network;
 
+    QVBoxLayout *lay = nullptr;
     QScrollArea *scroll = nullptr;
 };

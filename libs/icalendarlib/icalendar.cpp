@@ -60,13 +60,14 @@ void ICalendar::LoadFromFile() {
   File.open(FileName, ios::in | ios::binary);
 
   if (!File.is_open()) {
-    File.clear();
+    // wth man?
+    /*File.clear();
     File.open(FileName, ios::out | ios::binary | ios::trunc);
     File << "BEGIN:VCALENDAR\r\n";
     File << "VERSION:2.0\r\n";
     File << "PRODID:-//Juliusz Gonera//NONSGML remind.me//EN\r\n";
     File << "END:VCALENDAR\r\n";
-    File.close();
+    File.close();*/
 
     return;
   }

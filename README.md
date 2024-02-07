@@ -2,7 +2,6 @@
 ## An application designed to replace INKK for INSA Lyon
 ---
 ### Table of contents
- - [Modules](#modules)
  - [Download](#download)
  - [Build and Run](#build-and-run)
  - [Contact](#contact)

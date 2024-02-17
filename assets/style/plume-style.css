@@ -27,6 +27,41 @@
     border: none;
 }
 
+.calendar-event {
+    background-color: gray;
+    border-radius: 5px;
+}
+
+.calendar-event-title .calendar-event-desc .calendar-event-location {
+    font-family: "Whitney"; 
+    font-size: 12px;
+    color: #feffff;
+}
+
+.calendar-event-title {
+    font-size: 14px;
+}
+
+.calendar-event-td {
+    background-color: greenyellow;
+}
+
+.calendar-event-tp {
+    background-color: red;
+}
+
+.calendar-event-cm {
+    background-color: lightblue;
+}
+
+.calendar-event-pr {
+    
+}
+
+.calendar-event-edt {
+    
+}
+
 .mail {
     background-color: red;
 }

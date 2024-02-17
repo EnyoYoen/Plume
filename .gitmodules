@@ -1,0 +1,3 @@
+[submodule "libs/libical"]
+	path = libs/libical
+	url = https://github.com/libical/libical.git

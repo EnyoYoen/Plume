@@ -4,7 +4,7 @@ project(
     Plume
     VERSION 0.1
     DESCRIPTION "An application designed to replace INKK for INSA Lyon"
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 set(CMAKE_AUTOMOC ON)
@@ -20,11 +20,9 @@ set(SOURCES
     "src/widgets/bar/button.cpp"
     "src/widgets/home/home.cpp"
     "src/widgets/calendar/calendar.cpp"
+    "src/widgets/calendar/event.cpp"
+    "src/widgets/calendar/eventpage.cpp"
     "src/widgets/mail/mail.cpp"
-
-    "libs/icalendarlib/icalendar.cpp"
-    "libs/icalendarlib/date.cpp"
-    "libs/icalendarlib/types.cpp"
 )
 
 set(HEADERS
@@ -33,17 +31,29 @@ set(HEADERS
     "src/widgets/bar/button.h"
     "src/widgets/home/home.h"
     "src/widgets/calendar/calendar.h"
+    "src/widgets/calendar/event.h"
+    "src/widgets/calendar/eventpage.h"
     "src/widgets/mail/mail.h"
+)
 
-    "libs/icalendarlib/icalendar.h"
-    "libs/icalendarlib/date.h"
+include_directories(
+  ${CMAKE_BINARY_DIR}
+  ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_BINARY_DIR}/src
+  ${CMAKE_SOURCE_DIR}/src/libical
+  ${CMAKE_BINARY_DIR}/src/libical
+  ${CMAKE_SOURCE_DIR}/src/libicalss
 )
 
 qt_add_resources(SOURCES "src/plume.qrc")
-
-include_directories("libs/")
 
 add_executable(Plume ${SOURCES} ${HEADERS})
 
 target_link_libraries(Plume Qt6::Widgets)
 target_link_libraries(Plume Qt6::Network)
+
+target_link_libraries(Plume
+    ical
+    icalss
+    icalvcal
+)

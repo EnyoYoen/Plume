@@ -1,5 +1,7 @@
 #include "calendar.h"
 
+#include <QPushButton>
+
 #include <QNetworkRequest>
 #include <QNetworkReply>
 
@@ -20,12 +22,38 @@ void Calendar::loadUI()
     lay->setContentsMargins(0, 0, 0, 0);
     lay->setSpacing(0);
 
-    header = new QWidget(this);
-    header->setFixedHeight(30);
-    QHBoxLayout *headerLay = new QHBoxLayout(header); 
+    QWidget *header = new QWidget(this);
+    QHBoxLayout *headerLay = new QHBoxLayout(header);
+    headerLay->setContentsMargins(0, 0, 0, 0);
+    headerLay->setSpacing(0);
+
+    QDate currentDate = QDate::currentDate();
+    QLabel *headerDate = new QLabel(months[currentDate.month()] + QString(" ") + QString::number(currentDate.year()), header);
+    headerDate->setProperty("class", "calendar-header-date");
+
+    QPushButton *today = new QPushButton(header);
+    today->setProperty("class", "calendar-header-today");
+
+    QPushButton *settings = new QPushButton(header);
+    settings->setProperty("class", "calendar-header-settings");
+    
+    headerLay->addWidget(headerDate);
+    headerLay->addStretch();
+    headerLay->addWidget(today);
+    headerLay->addWidget(settings);
+
+
+    QWidget *body = new QWidget(this);
+    QVBoxLayout *bodyLay = new QVBoxLayout(body);
+    bodyLay->setContentsMargins(0, 0, 0, 0);
+    bodyLay->setSpacing(0);
+
+    contentHeader = new QWidget(body);
+    contentHeader->setFixedHeight(30);
+    QHBoxLayout *contentHeaderLay = new QHBoxLayout(contentHeader); 
 
     for (quint8 i = 0 ; i < 8 ; i++) {
-        QLabel *day = new QLabel(days[i], header);
+        QLabel *day = new QLabel(days[i], contentHeader);
         if (i == 0) {
             day->setFixedWidth(offset);
         } else {
@@ -33,18 +61,19 @@ void Calendar::loadUI()
             day->setAlignment(Qt::AlignCenter);
             day->setProperty("class", "calendar-day");
         }
-        headerLay->addWidget(day, 0, Qt::AlignVCenter);
+        dayLabels.append(day);
+        contentHeaderLay->addWidget(day, 0, Qt::AlignVCenter);
     }
 
-    headerLay->addStretch();
-    headerLay->setContentsMargins(0, 0, 0, 0);
-    headerLay->setSpacing(0);
+    contentHeaderLay->addStretch();
+    contentHeaderLay->setContentsMargins(0, 0, 0, 0);
+    contentHeaderLay->setSpacing(0);
 
     scroll = new QScrollArea(this);
     scroll->setProperty("class", "calendar-scroll");
     scroll->setAttribute(Qt::WA_StyledBackground);
     
-    QWidget *content = new QWidget(scroll);
+    content = new QWidget(scroll);
     QHBoxLayout *contentLay = new QHBoxLayout(content);
 
     QWidget *hours = new QWidget(content);
@@ -52,7 +81,7 @@ void Calendar::loadUI()
     QVBoxLayout *hoursLay = new QVBoxLayout(hours);
 
     for (quint8 i = 0 ; i < 25 ; i++) {
-        QWidget *hourContainer = new QWidget(hours);
+        hourContainer = new QWidget(hours);
         QVBoxLayout *hourLay = new QVBoxLayout(hourContainer);
         hourLay->setContentsMargins(0, 0, 0, 0);
         hourLay->setSpacing(0);
@@ -75,6 +104,7 @@ void Calendar::loadUI()
     contentLay->addWidget(hours);
     contentLay->addWidget(eventField);
     contentLay->setContentsMargins(0, 0, 0, 0);
+    contentLay->setSpacing(0);
 
     scroll->setWidget(content);
     scroll->setContentsMargins(0, 0, 0, 0);
@@ -83,8 +113,11 @@ void Calendar::loadUI()
     scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
+    bodyLay->addWidget(contentHeader);
+    bodyLay->addWidget(scroll);
+
     lay->addWidget(header);
-    lay->addWidget(scroll);
+    lay->addWidget(body);
 
     setProperty("class", "calendar");
     setAttribute(Qt::WA_StyledBackground);
@@ -107,7 +140,7 @@ void Calendar::loadCalendars()
         default: // NoWeekend or Week
             spanStart = spanStart.addDays(1 - spanStart.date().dayOfWeek());
     }
-    spanEnd = QDateTime(spanStart.date().addDays(spanDuration - 1), QTime(23, 59, 59));
+    spanEnd = QDateTime(spanStart.date().addDays(spanDuration), QTime(0, 0));
 
     checkDataFolder();
 
@@ -197,6 +230,30 @@ void describe(icalcomponent *component)
     qDebug() << "--- End describing ---\n";
 }
 
+bool intersect(Timestamp ts1, Timestamp ts2)
+{
+    QDateTime dts1 = ts1.first.addSecs(1);
+    QDateTime dte1 = dts1.addSecs(ts1.second - 2);
+    QDateTime dts2 = ts2.first;
+    QDateTime dte2 = dts2.addSecs(ts2.second);
+    return (dts1 < dts2 && dts2 < dte1)
+        || (dts1 < dte2 && dte2 < dte1)
+        || (dts2 < dts1 && dts1 < dte2)
+        || (dts2 < dte1 && dte1 < dte2);
+}
+
+QList<Event *> intersections(QHash<Event *,Timestamp> pairs, Timestamp t)
+{
+    QList<Event *> events;
+    for (Event *e : pairs.keys()) {
+        if (intersect(pairs[e], t)) {
+            events.append(e);
+            e->reduce();
+        }
+    }
+    return events;
+}
+
 void Calendar::loadICS(QString content)
 {
     icalcomponent *cal = icalparser_parse_string(content.toStdString().c_str());
@@ -216,24 +273,30 @@ void Calendar::loadICS(QString content)
             }
             components[date].append(QPair<QDateTime, icalcomponent *>(datetime, /*icalcomponent_new_clone(*/c/*)*/));
 
-            //qDebug() << datetime << " " << spanStart << " " << QDateTime(spanStart.date().addDays(spanDuration), QTime(23, 59, 59)) << " " << (datetime >= spanStart) << " " << (datetime <= QDateTime(spanStart.date().addDays(spanDuration), QTime(23, 59, 59)));
             if (datetime >= spanStart && datetime <= spanEnd) {
                 QTime time = datetime.time();
                 qint32 columnPos = (date.day() - spanStart.date().day()) * columnWidth + 2;
                 qint32 rowPos = ((double)time.hour() + (double)time.minute() / 60 + (double)time.second() / 3600 + 1.0) * rowHeight + 2;
                 double duration = icalcomponent_get_span(c).end - icalcomponent_get_span(c).start;
                 QSize size = QSize(columnWidth - 4, duration / 3600.0 * rowHeight - 4);
-                //qDebug() << size << QPoint(columnPos, rowPos);
+                
                 Event *event = new Event(datetime, c, eventField);
+                if (!events.contains(date))
+                    events[date] = QList<QPair<Event *, Timestamp>>();
+                events[date].append(QPair<Event *, Timestamp>(event, Timestamp(datetime, duration)));
+
                 event->setFixedSize(size);
                 event->move(columnPos, rowPos);
+
+                eventList.append(QPair<Event *, Timestamp>(event, Timestamp(datetime, duration)));
+                
                 QObject::connect(event, &Event::clicked, [c, datetime, duration, this]() {
                     ep = new EventPage(c, datetime, duration, this);
-                    header->hide();
+                    contentHeader->hide();
                     scroll->hide();
                     lay->addWidget(ep);
                     QObject::connect(ep, &EventPage::closed, [this]() {
-                        header->show();
+                        contentHeader->show();
                         scroll->show();
                         ep->hide();
                         ep->deleteLater();
@@ -242,6 +305,64 @@ void Calendar::loadICS(QString content)
                 });
             }
         }
+
+        for (QDate date : events.keys()) {
+            QHash<Event *, Timestamp> eventsTimestamps;
+            for (auto pair : events[date]) {
+                QList<Event *> intersects = intersections(eventsTimestamps, pair.second);
+                eventsTimestamps[pair.first] = pair.second;
+                if (intersects.size() == 1 && intersects[0]->order > 0) {
+                    pair.first->order = intersects[0]->order - 1;
+                    pair.first->reduce();
+                    for (Event *e : intersects) {
+                        e->reduce(-1);
+                    }
+                } else {
+                    pair.first->order = intersects.size();
+                    pair.first->reduce(intersects.size());
+                }
+            }
+        }
     }
     //icalcomponent_free(cal);
+}
+
+void Calendar::updateSizes()
+{
+    QSize contentSize = content->size();
+    int width = contentSize.width();
+    columnWidth = (width - 30) / spanDuration;
+    offset = 30 + (width - 30) % spanDuration;
+
+
+    hourContainer->setFixedHeight(rowHeight);
+
+    dayLabels[0]->setFixedWidth(offset);
+    for (qint8 i = 1 ; i < dayLabels.size() ; i++) {
+        dayLabels[i]->setFixedWidth(columnWidth);
+    }
+
+    for (QPair<Event *, Timestamp> pair : eventList) {
+        Timestamp ts = pair.second;
+        Event *e = pair.first;
+        QTime time = ts.first.time();
+        qint32 columnPos = (ts.first.date().day() - spanStart.date().day()) * columnWidth + 2;
+        qint32 rowPos = ((double)time.hour() + (double)time.minute() / 60 + (double)time.second() / 3600 + 1.0) * rowHeight + 2;
+        qint32 width = (columnWidth - 4) / e->reduceFactor;
+        qint32 height = ts.second / 3600.0 * rowHeight - 4;
+
+        e->setFixedSize(width, height);
+        e->move(columnPos + width * e->order, rowPos);
+    }
+}
+
+
+void Calendar::showEvent(QShowEvent *)
+{
+    updateSizes();
+}
+
+void Calendar::resizeEvent(QResizeEvent *)
+{
+    updateSizes();
 }

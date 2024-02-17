@@ -13,6 +13,8 @@
 #include "event.h"
 #include "eventpage.h"
 
+typedef QPair<QDateTime, double> Timestamp;
+
 class Calendar : public QWidget
 {
     Q_OBJECT
@@ -27,6 +29,7 @@ private:
         Month,
     };
 
+    const char* months[12] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
     const char* days[8] = {"", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
 
     QDir dataFolder;
@@ -44,21 +47,31 @@ private:
     void loadRemoteICS(QString url);
     void loadICS(QString content);
 
+    void updateSizes();
+
+    void showEvent(QShowEvent *) override;
+    void resizeEvent(QResizeEvent *) override;
+
     QNetworkAccessManager network;
     QDateTime spanStart;
     QDateTime spanEnd;
     qint64 spanDuration;
     SpanType spanType;
-
     QTimeZone timezone;
+
     QHash<QDate, QList<QPair<QDateTime, icalcomponent *>>> components;
-    QList<Event *> events;
+    QHash<QDate, QList<QPair<Event *, Timestamp>>> events;
+    QList<QPair<Event *, Timestamp>> eventList;
 
     QVBoxLayout *lay = nullptr;
-    QWidget *header = nullptr;
+    QWidget *contentHeader = nullptr;
     QScrollArea *scroll = nullptr;
+    QWidget *content = nullptr;
+    QWidget *hourContainer = nullptr;
     QWidget *eventField = nullptr;
     EventPage *ep = nullptr;
+    QList<QWidget *> dayLabels;
+
     qint32 columnWidth = 100;
     qint32 rowHeight = 60;
     qint32 offset = 30;

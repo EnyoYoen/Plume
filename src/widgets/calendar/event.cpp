@@ -43,6 +43,7 @@ Event::Event(QDateTime datetime, icalcomponent *comp, QWidget *parent)
     lay->addWidget(title);
     lay->addWidget(location);
     lay->addWidget(desc);
+    //lay->addStretch();
 
     location->setProperty("class", "calendar-event-location");
     title->setProperty("class", title->property("class").toString() + " calendar-event-title");
@@ -53,6 +54,21 @@ Event::Event(QDateTime datetime, icalcomponent *comp, QWidget *parent)
     setAttribute(Qt::WA_StyledBackground);
 }
 
+void Event::reduce(qint8 count)
+{
+    reduceFactor += count;
+}
+
+
+void Event::showEvent(QShowEvent *)
+{
+    if (!reduced) {
+        reduced = true;
+        int width = this->width();
+        this->setFixedWidth(this->width() / reduceFactor);
+        this->move(this->x() + width / reduceFactor * order, this->y());
+    }
+}
 
 void Event::mouseReleaseEvent(QMouseEvent *event)
 {

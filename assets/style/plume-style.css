@@ -19,12 +19,40 @@
 }
 
 .calendar {
-    background-color: orange;
+    background-color: #ffffff;
+}
+
+.calendar-header {
+    
+}
+
+.calendar-header-date {
+    font-family: "Whitney"; 
+    font-size: 24px;
+}
+
+.calendar-header-button {
+    border: none;
+    background-color: #a1a1a1;
+    border-radius: 15px;
+}
+
+.calendar-header-button-today {
+    background-image: url(":/calendar.png");
+}
+
+.calendar-header-button-settings {
+    background-image: url(":/three-dots.png");
 }
 
 .calendar-scroll {
-    background-color: orange;
     border: none;
+}
+
+.calendar-day .calendar-hour {
+    font-family: "Whitney";
+    font-size: 12px;
+    color: #feffff;
 }
 
 .calendar-event {

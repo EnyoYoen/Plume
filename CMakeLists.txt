@@ -22,6 +22,7 @@ set(SOURCES
     "src/widgets/calendar/calendar.cpp"
     "src/widgets/calendar/event.cpp"
     "src/widgets/calendar/eventpage.cpp"
+    "src/widgets/calendar/button.cpp"
     "src/widgets/mail/mail.cpp"
 )
 
@@ -33,6 +34,7 @@ set(HEADERS
     "src/widgets/calendar/calendar.h"
     "src/widgets/calendar/event.h"
     "src/widgets/calendar/eventpage.h"
+    "src/widgets/calendar/button.h"
     "src/widgets/mail/mail.h"
 )
 

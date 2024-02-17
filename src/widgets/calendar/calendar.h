@@ -39,6 +39,7 @@ private:
 
     void loadUI();
     void loadCalendars();
+    void resetSpan();
 
     void checkDataFolder();
     QStringList getICSUrls();
@@ -46,6 +47,7 @@ private:
 
     void loadRemoteICS(QString url);
     void loadICS(QString content);
+    void loadEvents();
 
     void updateSizes();
 

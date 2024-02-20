@@ -39,12 +39,17 @@ set(HEADERS
 )
 
 include_directories(
-  ${CMAKE_BINARY_DIR}
-  ${CMAKE_SOURCE_DIR}/src
-  ${CMAKE_BINARY_DIR}/src
-  ${CMAKE_SOURCE_DIR}/src/libical
-  ${CMAKE_BINARY_DIR}/src/libical
-  ${CMAKE_SOURCE_DIR}/src/libicalss
+  libs/libical/src
+  libs/libical/src/libical
+  libs/libical/src/libicalss
+  libs/libical/build/src
+  libs/libical/build/src/libical
+  libs/libical/build/src/libicalss
+)
+
+link_directories(
+    libs/libical/build/lib
+    libs/libical/lib
 )
 
 qt_add_resources(SOURCES "src/plume.qrc")

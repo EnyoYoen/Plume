@@ -24,10 +24,13 @@ public:
 
 private:
     enum class SpanType : quint8 {
+        None,
+        Day,
         NoWeekend,
         Week,
         Month,
     };
+    QHash<SpanType, qint64> typeDuration;
 
     const char* months[12] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
     const char* days[8] = {"", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
@@ -37,9 +40,11 @@ private:
     QString dataFolderPath;
     QString calendarFolderPath;
 
+    void loadConfig();
     void loadUI();
     void loadCalendars();
     void resetSpan();
+    bool addToConfig(QString name, QVariant value);
 
     void checkDataFolder();
     QStringList getICSUrls();

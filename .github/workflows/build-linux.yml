@@ -18,9 +18,21 @@ jobs:
       - name: Install Qt        
         uses: jurplel/install-qt-action@v3
         with:
-          version: 6.4.*
+          version: 6.6.*
           arch: gcc_64
           dir: '${{github.workspace}}/'
+
+      - name: Build libical
+        shell: bash
+        run: |
+          cd libs
+          git submodule update --init --recursive
+          cd libical
+          mkdir build
+          cd build
+          cmake .. -DENABLE_GTK_DOC=OFF
+          make
+          sudo make install
 
       - name: Build
         shell: bash

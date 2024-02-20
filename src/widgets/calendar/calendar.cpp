@@ -11,8 +11,42 @@
 Calendar::Calendar(QWidget *parent)
     : QWidget(parent)
 {
+    loadConfig();
     loadUI();
     loadCalendars();
+}
+
+void Calendar::loadConfig()
+{
+    typeDuration.insert(SpanType::None,      0);
+    typeDuration.insert(SpanType::Day,       1);
+    typeDuration.insert(SpanType::NoWeekend, 5);
+    typeDuration.insert(SpanType::Week,      7);
+    typeDuration.insert(SpanType::Month,     30);
+
+    checkDataFolder();
+
+    spanType = SpanType::NoWeekend;
+
+    QFile configFile(calendarFolderPath + "config.txt");
+    if (configFile.open(QFile::ReadOnly)) {
+        QString config = configFile.readAll();
+        QStringList configLines = config.split('\n');
+        for (QString line : configLines) {
+            if (line.startsWith("spanType")) {
+                QStringList splits = line.split(':');
+                if (splits.size() == 3) {
+                    bool ok = true;
+                    int result = splits[2].toInt(&ok);
+                    if (ok && (spanType < SpanType::Month && spanType > SpanType::None)) {
+                        spanType = (SpanType)result;
+                    }
+                }
+            }
+        }
+    }
+
+    spanDuration = typeDuration[spanType];
 }
 
 void Calendar::loadUI()
@@ -73,7 +107,7 @@ void Calendar::loadUI()
     contentHeader->setFixedHeight(30);
     QHBoxLayout *contentHeaderLay = new QHBoxLayout(contentHeader); 
 
-    for (quint8 i = 0 ; i < 8 ; i++) {
+    for (quint8 i = 0 ; i < (spanDuration > 7 ? 8 : spanDuration + 1) ; i++) {
         QLabel *day = new QLabel(days[i], contentHeader);
         if (i == 0) {
             day->setFixedWidth(offset);
@@ -146,9 +180,6 @@ void Calendar::loadUI()
 
 void Calendar::loadCalendars()
 {
-    spanDuration = 7;          // TODO : add a config file to change the
-    spanType = SpanType::Week; // span type and duration persistently
-
     resetSpan();
 
     checkDataFolder();
@@ -180,6 +211,38 @@ void Calendar::resetSpan()
     spanEnd = QDateTime(spanStart.date().addDays(spanDuration), QTime(0, 0));
 }
 
+bool Calendar::addToConfig(QString name, QVariant value)
+{
+    checkDataFolder();
+
+    bool found = false;
+    QStringList configLines;
+    QString configLine = name + ":" + value.toString() + '\n';
+    QFile configFile(calendarFolderPath + "config.txt");
+    if (configFile.open(QFile::ReadOnly)) {
+        QString config = configFile.readAll();
+        configLines = config.split('\n');
+        for (quint64 i = 0 ; i < configLines.size() ; i++) {
+            if (configLines[i].startsWith(name)) {
+                configLines[i] = configLine;
+            }
+        }
+    }
+    if (!found) {
+        configLines.append(configLine);
+    }
+    configFile.close();
+
+    bool ok = true;
+    if (configFile.open(QFile::WriteOnly)) {
+        configFile.write(configLines.join('\n').toStdString().c_str());
+    } else {
+        ok = false;
+    }
+    configFile.close();
+    return ok;
+}
+
 void Calendar::checkDataFolder()
 {
     if (dataFolderPath.isNull()) {
@@ -199,6 +262,9 @@ void Calendar::checkDataFolder()
     if (!QDir(calendarFolderPath).exists())
         dataFolder.mkdir("calendar");
     
+    if (!QFileInfo(calendarFolderPath + "config.txt").isFile())
+        QFile(calendarFolderPath + "config.txt").open(QFile::WriteOnly);
+
     if (!QFileInfo(calendarFolderPath + "urls").isFile())
         QFile(calendarFolderPath + "urls").open(QFile::WriteOnly);
 
@@ -237,23 +303,6 @@ void Calendar::loadRemoteICS(QString url)
         }
         reply->deleteLater();
     });
-}
-
-void describe(icalcomponent *component)
-{
-    qDebug() << "--- Start describing ---";
-    qDebug() << icalcomponent_kind_to_string(icalcomponent_isa(component));
-    qDebug() << icalcomponent_get_comment(component);
-    qDebug() << QString(icalcomponent_get_description(component)).remove('\n');
-    qDebug() << icalcomponent_get_dtstart(component).day << " " << icalcomponent_get_dtstart(component).hour << " " << icalcomponent_get_dtstart(component).minute << " " << icalcomponent_get_dtstart(component).second;
-    qDebug() << icalcomponent_get_dtend(component).day << " " << icalcomponent_get_dtend(component).hour << " " << icalcomponent_get_dtend(component).minute << " " << icalcomponent_get_dtend(component).second;
-    qDebug() << icalcomponent_get_duration(component).seconds;
-    qDebug() << icalcomponent_get_location(component);
-    qDebug() << icalcomponent_get_span(component).start << " " << icalcomponent_get_span(component).end << " " << float(icalcomponent_get_span(component).end - icalcomponent_get_span(component).start) / 3600.0;
-    qDebug() << icalcomponent_get_status(component);
-    qDebug() << icalcomponent_get_summary(component);
-    qDebug() << icalcomponent_get_uid(component);
-    qDebug() << "--- End describing ---\n";
 }
 
 bool intersect(Timestamp ts1, Timestamp ts2)

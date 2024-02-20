@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
       - uses: actions/checkout@v3
@@ -18,21 +18,36 @@ jobs:
       - name: Install Qt        
         uses: jurplel/install-qt-action@v3
         with:
-          version: 6.4.3
+          version: 6.6.*
           arch: 'win64_msvc2019_64'
           dir: '${{github.workspace}}/'
 
+      - name : Set up Build     
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          vsversion: 2019
+
+      - name: Build libical
+        shell: cmd
+        run: |
+          cd libs
+          git submodule update --init --recursive
+          cd libical
+          mkdir build
+          cmake -B build --warn-uninitialized -G "MinGW Makefiles" -DCMAKE_INSTALL_PREFIX=. -DCMAKE_BUILD_TYPE=Release -DLIBICAL_BUILD_TESTING=False -DENABLE_GTK_DOC=False -DICAL_GLIB=False -DGOBJECT_INTROSPECTION=False -DICAL_GLIB_VAPI=False
+          cmake --build build
+          cd build
+          mingw32-make
+          mingw32-make install
+
       - name: Build
         shell: bash
-        env:
-          CXX: cl.exe
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release ..
-          dir
           cmake --build . --parallel $(nproc) --config Release
           cd $GITHUB_WORKSPACE/build/Release
-          $GITHUB_WORKSPACE/Qt/6.4.3/msvc2019_64/bin/windeployqt.exe --release Plume.exe
+          $GITHUB_WORKSPACE/Qt/6.6.2/msvc2019_64/bin/windeployqt.exe --release Plume.exe
 
       - name: Upload Executable
         uses: actions/upload-artifact@v3

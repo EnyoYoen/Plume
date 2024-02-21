@@ -50,16 +50,33 @@ $ brew install qt6 libpthread-stubs
 You will also need [CMake](https://cmake.org/download/) in your system PATH (Minimum version: 3.1.0)
 ### Build
 In 'Plume' (top) folder:  
-On Windows:  
+On Windows: (needs MinGW)
 ```shell
+git submodule update --init --recursive
+cd libs/libical
+mkdir build
+cmake -B build --warn-uninitialized -G "MinGW Makefiles" -DCMAKE_INSTALL_PREFIX=. -DCMAKE_BUILD_TYPE=Release -DWITH_CXX_BINDINGS=False -DLIBICAL_BUILD_TESTING=False -DENABLE_GTK_DOC=False -DICAL_GLIB=False -DGOBJECT_INTROSPECTION=False -DICAL_GLIB_VAPI=False
+cmake --build build
+cd build
+mingw32-make
+mingw32-make install
+
 cd build\
 cmake .. -DCMAKE_TOOLCHAIN_FILE=(path/to/)vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build . -j 8 --config Release
 ```
 Otherwise:
 ```shell
-cd build/
-cmake .. 
+git submodule update --init --recursive
+cd libs/libical
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=. -DCMAKE_BUILD_TYPE=Release -DWITH_CXX_BINDINGS=False -DLIBICAL_BUILD_TESTING=False -DENABLE_GTK_DOC=False -DICAL_GLIB=False -DGOBJECT_INTROSPECTION=False -DICAL_GLIB_VAPI=False
+make
+sudo make install
+
+cd ../build
+cmake -DCMAKE_BUILD_TYPE=Release .. 
 cmake --build . -j 8
 ```
 ### Run

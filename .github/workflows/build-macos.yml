@@ -25,12 +25,11 @@ jobs:
       - name: Build libical
         shell: bash
         run: |
-          cd libs
           git submodule update --init --recursive
-          cd libical
+          cd libs/libical
           mkdir build
           cd build
-          cmake .. -DENABLE_GTK_DOC=OFF
+          cmake .. -DCMAKE_INSTALL_PREFIX=. -DCMAKE_BUILD_TYPE=Release -DWITH_CXX_BINDINGS=False -DLIBICAL_BUILD_TESTING=False -DENABLE_GTK_DOC=False -DICAL_GLIB=False -DGOBJECT_INTROSPECTION=False -DICAL_GLIB_VAPI=False
           make
           sudo make install
 

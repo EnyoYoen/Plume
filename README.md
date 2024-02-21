@@ -62,7 +62,7 @@ mingw32-make
 mingw32-make install
 
 cd build\
-cmake .. -DCMAKE_TOOLCHAIN_FILE=(path/to/)vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_TOOLCHAIN_FILE=(path/to/)vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build . -j 8 --config Release
 ```
 Otherwise:

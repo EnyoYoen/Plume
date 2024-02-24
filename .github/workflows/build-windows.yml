@@ -28,7 +28,7 @@ jobs:
           vsversion: 2019
 
       - name: Build libical
-        shell: cmd
+        shell: bash
         run: |
           git submodule update --init --recursive
           cd libs/libical
@@ -36,7 +36,7 @@ jobs:
           cmake -B build --warn-uninitialized -G "MinGW Makefiles" -DCMAKE_INSTALL_PREFIX=. -DCMAKE_BUILD_TYPE=Release -DWITH_CXX_BINDINGS=False -DLIBICAL_BUILD_TESTING=False -DENABLE_GTK_DOC=False -DICAL_GLIB=False -DGOBJECT_INTROSPECTION=False -DICAL_GLIB_VAPI=False
           cmake --build build
           cd build
-          mingw32-make
+          mingw32-make -j $(nproc)
           mingw32-make install
 
       - name: Build

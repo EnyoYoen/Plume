@@ -4,5 +4,6 @@
         <file alias="plume-style.css">../assets/style/plume-style.css</file>
         <file alias="three-dots.png">../assets/images/three-dots.png</file>
         <file alias="calendar.png">../assets/images/calendar.png</file>
+        <file alias="icon.png">../assets/images/icon.png</file>
     </qresource>
 </RCC>

@@ -1,0 +1,56 @@
+name: Build Android
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+    
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Qt        
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: 6.6.*
+          arch: gcc_64
+          target: android
+          dir: '${{github.workspace}}/'
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build libical
+        shell: bash
+        run: |
+          git submodule update --init --recursive
+          cd libs/libical
+          mkdir build
+          cd build
+          "$GITHUB_WORKSPACE/bin/qt-cmake" .. -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT -DANDROID_NDK_ROOT=$ANDROID_NDK_ROOT -DQT_ANDROID_BUILD_ALL_ABIS=TRUE -DCMAKE_BUILD_TYPE=Release -DWITH_CXX_BINDINGS=False -DLIBICAL_BUILD_TESTING=False -DENABLE_GTK_DOC=False -DICAL_GLIB=False -DGOBJECT_INTROSPECTION=False -DICAL_GLIB_VAPI=False
+          make -j $(nproc)
+          sudo make install
+
+      - name: Build
+        shell: bash
+        run: |
+          cd build
+          "$GITHUB_WORKSPACE/bin/qt-cmake" .. -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT -DANDROID_NDK_ROOT=$ANDROID_NDK_ROOT -DQT_ANDROID_BUILD_ALL_ABIS=TRUE -DCMAKE_BUILD_TYPE=Release
+          make -j $(nproc) apk 
+          mkdir Android
+          mv Plume.apk Android/
+
+      - name: Upload Executable
+        uses: actions/upload-artifact@v3
+        with:
+          name: "Plume - Android"
+          path: '${{github.workspace}}/build/Android'

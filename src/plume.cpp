@@ -1,5 +1,7 @@
 #include "plume.h"
 
+#include <QIcon>
+
 #include <QDirIterator>
 #include <QLibrary>
 #include <QFunctionPointer>
@@ -65,6 +67,7 @@ Plume::Plume()
     lay->addWidget(bottombar);
 
     setProperty("class", "plume");
+    setWindowIcon(QIcon(":icon.png"));
 
     setMinimumSize(1000, 800); // TODO : temporary
 }

@@ -2,6 +2,8 @@
 
 #include "button.h"
 
+#include <QScrollBar>
+
 #include <QNetworkRequest>
 #include <QNetworkReply>
 
@@ -458,6 +460,9 @@ void Calendar::updateSizes()
 void Calendar::showEvent(QShowEvent *)
 {
     updateSizes();
+    QScrollBar *vsb = scroll->verticalScrollBar();
+    vsb->setValue(vsb->maximum() / 2);
+
 }
 
 void Calendar::resizeEvent(QResizeEvent *)

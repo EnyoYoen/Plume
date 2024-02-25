@@ -48,7 +48,6 @@ include_directories(
 )
 
 link_directories(
-    build/libical/lib
     libs/libical/build/lib
     libs/libical/lib
 )

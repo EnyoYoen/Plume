@@ -1,6 +1,6 @@
 #pragma once
 
-#include "button.h"
+#include "barbutton.h"
 
 #include <QWidget>
 #include <QLabel>

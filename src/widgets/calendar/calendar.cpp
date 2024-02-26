@@ -1,7 +1,5 @@
 #include "calendar.h"
 
-#include "button.h"
-
 #include <QScrollBar>
 
 #include <QNetworkRequest>
@@ -9,6 +7,8 @@
 
 #include <QStandardPaths>
 #include <QFileInfo>
+
+#include "headerbutton.h"
 
 Calendar::Calendar(QWidget *parent)
     : QWidget(parent)
@@ -37,10 +37,10 @@ void Calendar::loadConfig()
         for (QString line : configLines) {
             if (line.startsWith("spanType")) {
                 QStringList splits = line.split(':');
-                if (splits.size() == 3) {
+                if (splits.size() == 2) {
                     bool ok = true;
-                    int result = splits[2].toInt(&ok);
-                    if (ok && (spanType < SpanType::Month && spanType > SpanType::None)) {
+                    int result = splits[1].toInt(&ok);
+                    if (ok && (spanType <= SpanType::Month && spanType > SpanType::None)) {
                         spanType = (SpanType)result;
                     }
                 }
@@ -66,7 +66,7 @@ void Calendar::loadUI()
     headerLay->setSpacing(0);
 
     QDate currentDate = QDate::currentDate();
-    QLabel *headerDate = new QLabel(months[currentDate.month()] + QString(" ") + QString::number(currentDate.year()), header);
+    headerDate = new QLabel(months[currentDate.month() - 1] + QString(" ") + QString::number(currentDate.year()), header);
     headerDate->setProperty("class", "calendar-header-date");
 
     HeaderButton *left = new HeaderButton(HeaderButton::Type::Left, header);
@@ -75,18 +75,91 @@ void Calendar::loadUI()
     HeaderButton *settings = new HeaderButton(HeaderButton::Type::Settings, header);
 
     QObject::connect(left, &HeaderButton::clicked, [this]() {
-        spanStart = spanStart.addDays(-7);
-        spanEnd = spanEnd.addDays(-7);
+        spanStart = spanStart.addDays(spanDuration == 1 ? -1 : -7);
+        spanEnd = spanEnd.addDays(spanDuration == 1 ? -1 : -7);
         loadEvents();
     });
     QObject::connect(right, &HeaderButton::clicked, [this]() {
-        spanStart = spanStart.addDays(7);
-        spanEnd = spanEnd.addDays(7);
+        spanStart = spanStart.addDays(spanDuration == 1 ? 1 : 7);
+        spanEnd = spanEnd.addDays(spanDuration == 1 ? 1 : 7);
         loadEvents();
     });
     QObject::connect(today, &HeaderButton::clicked, [this]() {
         resetSpan();
         loadEvents();
+    });
+    QObject::connect(settings, &HeaderButton::clicked, [this]() {
+        if (settingsPopUp != nullptr) {
+            settingsPopUp->deleteLater();
+            settingsPopUp = nullptr;
+        } else {
+            settingsPopUp = new Settings(calendarsComponents.keys(), this);
+            settingsPopUp->setFixedSize(this->size());
+            settingsPopUp->move(0, 0);
+            settingsPopUp->show();
+            
+            QObject::connect(settingsPopUp, &Settings::closed, [this]() {
+                settingsPopUp->deleteLater();
+                settingsPopUp = nullptr;
+            });
+
+            QObject::connect(settingsPopUp, &Settings::calendarTypeClicked, [this](quint8 index) {
+                if (index + 1 == (quint8)spanType) return;
+
+                if (index + 1 == (quint8)SpanType::Month) return; // TODO : implement month calendars
+
+                if (spanType == SpanType::Day) {
+                    spanStart = spanStart.addDays(1 - spanStart.date().dayOfWeek());
+                }
+
+                spanType = (SpanType)(index + 1);
+                spanDuration = typeDuration[spanType];
+                spanEnd = spanStart.addDays(spanDuration - 1);
+                addToConfig("spanType", (qint32)spanType);
+
+                qsizetype s = dayLabels.size();
+                for (qsizetype i = s - 1 ; i > 0 ; i--) {
+                    dayLabels[i]->deleteLater();
+                    dayLabels.remove(i);
+                }
+
+                for (quint8 i = 1 ; i < (spanDuration > 7 ? 8 : spanDuration + 1) ; i++) {
+                    QLabel *day = new QLabel(contentHeader);
+                    day->setText(days[i] + QString(" ") + QString::number(spanStart.addDays(i).date().day()));
+                    day->setFixedWidth(columnWidth);
+                    day->setAlignment(Qt::AlignCenter);
+                    day->setProperty("class", "calendar-day");
+                    dayLabels.append(day);
+                    contentHeaderLay->addWidget(day, 0, Qt::AlignVCenter);
+                }
+                
+                updateSizes();
+                loadEvents();
+            });
+
+            QObject::connect(settingsPopUp, &Settings::calendarsClicked, [this]() {
+                settingsPopUp->deleteLater();
+                settingsPopUp = nullptr;
+                addCalendarPage = new AddCalendarPage(calendarsComponents, this);
+                contentHeader->hide();
+                scroll->hide();
+                lay->addWidget(addCalendarPage);
+                QObject::connect(addCalendarPage, &AddCalendarPage::closed, [this]() {
+                    contentHeader->show();
+                    scroll->show();
+                    addCalendarPage->hide();
+                    addCalendarPage->deleteLater();
+                    addCalendarPage = nullptr;
+                });
+            });
+
+            QObject::connect(settingsPopUp, &Settings::calendarClicked, [this](CalendarName name, bool enabled) {
+                for (auto c : calendarsComponents[name]) {
+                    hiddenComponents[c] = !enabled;
+                }
+                loadEvents();
+            });
+        }
     });
     
     headerLay->addWidget(headerDate, 0, Qt::AlignVCenter);
@@ -107,13 +180,14 @@ void Calendar::loadUI()
 
     contentHeader = new QWidget(body);
     contentHeader->setFixedHeight(30);
-    QHBoxLayout *contentHeaderLay = new QHBoxLayout(contentHeader); 
+    contentHeaderLay = new QHBoxLayout(contentHeader); 
 
     for (quint8 i = 0 ; i < (spanDuration > 7 ? 8 : spanDuration + 1) ; i++) {
-        QLabel *day = new QLabel(days[i], contentHeader);
+        QLabel *day = new QLabel(contentHeader);
         if (i == 0) {
             day->setFixedWidth(offset);
         } else {
+            day->setText((spanDuration == 1 ? days[currentDate.dayOfWeek()] : days[i]) + QString(" ") + QString::number(spanStart.addDays(i).date().day()));
             day->setFixedWidth(columnWidth);
             day->setAlignment(Qt::AlignCenter);
             day->setProperty("class", "calendar-day");
@@ -192,7 +266,7 @@ void Calendar::loadCalendars()
     for (QString filename : getICSFilePaths()) {
         QFile file(calendarFolderPath + "ics/" + filename);
         file.open(QFile::ReadOnly);
-        loadICS(file.readAll());
+        loadICS(file.readAll(), filename, QUrl());
     }
 }
 
@@ -201,13 +275,17 @@ void Calendar::resetSpan()
     QDateTime datetime = QDateTime::currentDateTime();
     timezone = datetime.timeZone();
     spanStart = QDateTime(datetime.date(), QTime(0, 0));
+    month = spanStart.date().month();
+    year = spanStart.date().year();
+    reset = true;
     switch (spanType)
     {
         case SpanType::Month:
             spanStart = spanStart.addDays(1 - spanStart.date().day());
             break;
 
-        default: // NoWeekend or Week
+        case SpanType::NoWeekend:
+        case SpanType::Week:
             spanStart = spanStart.addDays(1 - spanStart.date().dayOfWeek());
     }
     spanEnd = QDateTime(spanStart.date().addDays(spanDuration), QTime(0, 0));
@@ -219,14 +297,15 @@ bool Calendar::addToConfig(QString name, QVariant value)
 
     bool found = false;
     QStringList configLines;
-    QString configLine = name + ":" + value.toString() + '\n';
+    QString configLine = name + ":" + value.toString();
     QFile configFile(calendarFolderPath + "config.txt");
     if (configFile.open(QFile::ReadOnly)) {
         QString config = configFile.readAll();
-        configLines = config.split('\n');
+        configLines = config.split('\n', Qt::SplitBehaviorFlags::SkipEmptyParts);
         for (quint64 i = 0 ; i < configLines.size() ; i++) {
             if (configLines[i].startsWith(name)) {
                 configLines[i] = configLine;
+                found = true;
             }
         }
     }
@@ -298,10 +377,10 @@ void Calendar::loadRemoteICS(QString url)
 
     QNetworkRequest request = QNetworkRequest(QUrl(url));
     QNetworkReply *reply = network.get(request);
-    QObject::connect(reply, &QNetworkReply::finished, [this, reply]() {
+    QObject::connect(reply, &QNetworkReply::finished, [this, reply, url]() {
         if (!reply->errorString().isNull()) {
             QByteArray replyContent = reply->readAll();
-            loadICS(replyContent);
+            loadICS(replyContent, QString(), QUrl(url));
         }
         reply->deleteLater();
     });
@@ -331,9 +410,10 @@ QList<Event *> intersections(QHash<Event *,Timestamp> pairs, Timestamp t)
     return events;
 }
 
-void Calendar::loadICS(QString content)
+void Calendar::loadICS(QString content, QString name, QUrl url)
 {
     icalcomponent *cal = icalparser_parse_string(content.toStdString().c_str());
+    QList<icalcomponent *> comps;
     if (icalcomponent_is_valid(cal)) {
         icalcomponent *c;
         for(c = icalcomponent_get_first_component(cal, ICAL_ANY_COMPONENT) ;
@@ -347,8 +427,12 @@ void Calendar::loadICS(QString content)
             if (!components.contains(date)) {
                 components[date] = QList<QPair<QDateTime, icalcomponent *>>();
             }
-            components[date].append(QPair<QDateTime, icalcomponent *>(datetime, icalcomponent_clone(c)));   
+            icalcomponent *cc = icalcomponent_clone(c);
+            components[date].append(QPair<QDateTime, icalcomponent *>(datetime, cc));  
+            comps.append(cc);
         }
+
+        calendarsComponents[CalendarName(name, url)] = comps;
 
         loadEvents();
     }
@@ -363,13 +447,24 @@ void Calendar::loadEvents()
     }
     eventList.clear();
 
+    for (quint8 i = 1 ; i < dayLabels.size() ; i++) {
+        reinterpret_cast<QLabel *>(dayLabels[i])->setText((spanDuration == 1 ? days[spanStart.date().dayOfWeek()] : days[i]) + QString(" ") + QString::number(spanStart.addDays(i - 1).date().day()));
+    }
+    if (spanStart.date().month() != month || spanStart.date().year() != year || reset) {
+        month = spanStart.date().month();
+        year = spanStart.date().year();
+        reset = false;
+        headerDate->setText(months[month - 1] + QString(" ") + QString::number(year));
+    }
+
     QList<Event *> actualEvents;
     QDate date = spanStart.date();
     for (quint8 i = 0 ; i < spanDuration ; i++) {
         for (auto componentPair : components[date]) {
-            QDateTime datetime = componentPair.first;
             icalcomponent *c = componentPair.second;
-            
+            if (hiddenComponents[c]) continue;
+
+            QDateTime datetime = componentPair.first;
             QTime time = datetime.time();
             qint32 columnPos = (date.day() - spanStart.date().day()) * columnWidth + 2;
             qint32 rowPos = ((double)time.hour() + (double)time.minute() / 60 + (double)time.second() / 3600 + 1.0) * rowHeight + 2;
@@ -453,6 +548,10 @@ void Calendar::updateSizes()
 
         e->setFixedSize(width, height);
         e->move(columnPos + width * e->order, rowPos);
+    }
+
+    if (settingsPopUp != nullptr) {
+        settingsPopUp->setFixedSize(this->size());
     }
 }
 

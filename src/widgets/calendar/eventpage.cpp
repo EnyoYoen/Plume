@@ -1,19 +1,27 @@
 #include "eventpage.h"
 
-#include <QPushButton>
 #include <QScrollArea>
+#include <QScrollBar>
+
+#include <QTimeZone>
+
+#include "backbutton.h"
 
 QWidget *buildInfoWidget(QPixmap icon, QWidget *info, QWidget *parent)
 {
     QWidget *infoCont = new QWidget(parent);
     QHBoxLayout *infoLay = new QHBoxLayout(infoCont);
     QLabel *iconWidget = new QLabel(infoCont);
-    if (!icon.isNull())
-        iconWidget->setPixmap(icon);
+    if (!icon.isNull()) {
+        iconWidget->setPixmap(icon.scaledToWidth(40, Qt::TransformationMode::SmoothTransformation));
+        iconWidget->setFixedSize(40, 40);
+        iconWidget->setProperty("class", "calendar-event-page-info-icon");
+    }
     infoLay->addWidget(iconWidget);
     infoLay->addWidget(info);
     infoLay->setSpacing(20);
     infoLay->setContentsMargins(0, 0, 0, 0);
+    infoCont->setProperty("class", "calendar-event-page-info-container");
     return infoCont;
 } 
 
@@ -29,8 +37,8 @@ EventPage::EventPage(icalcomponent *comp, QDateTime dt, qint32 duration, QWidget
 
     QWidget *header = new QWidget(this);
     QVBoxLayout *headerLay = new QVBoxLayout(header);
-    QPushButton *backButton = new QPushButton(header);
-    QObject::connect(backButton, &QPushButton::clicked, [this](){ emit closed(); });
+    BackButton *backButton = new BackButton(header);
+    QObject::connect(backButton, &BackButton::clicked, [this](){ emit closed(); });
     QLabel *title;
     QString summary = icalcomponent_get_summary(comp);
     if (ade) {
@@ -44,8 +52,12 @@ EventPage::EventPage(icalcomponent *comp, QDateTime dt, qint32 duration, QWidget
     } else {
         title = new QLabel(summary, header);
     }
+    header->setProperty("class", "calendar-event-page-header");
+    title->setProperty("class", "calendar-event-page-title");
     headerLay->addWidget(backButton);
     headerLay->addWidget(title);
+    headerLay->setContentsMargins(10, 10, 10, 20);
+    headerLay->setSpacing(20);
     lay->addWidget(header);
         
 
@@ -54,19 +66,33 @@ EventPage::EventPage(icalcomponent *comp, QDateTime dt, qint32 duration, QWidget
     QVBoxLayout *scrollLay = new QVBoxLayout(scrollContent);
     
     QLabel *infoTitle = new QLabel("Informations", scrollContent);
+    QWidget *line1 = new QWidget(scrollContent);
+    line1->setFixedSize(170, 10);
+    line1->setProperty("class", "calendar-event-page-line");
+    line1->setAttribute(Qt::WA_StyledBackground, true);
+    infoTitle->setProperty("class", "calendar-event-page-subtitle");
     scrollLay->addWidget(infoTitle);
+    scrollLay->addWidget(line1);
 
     QWidget *datetime = new QWidget(scrollContent);
     QVBoxLayout *datetimeLay = new QVBoxLayout(datetime);
     QLabel *date = new QLabel(dt.date().toString(), datetime);
+    date->setProperty("class", "calendar-event-page-info");
+    dt.setTimeZone(QTimeZone("Etc/UTC"));
+    dt.toTimeZone(QDateTime::currentDateTime().timeZone());
     QTime end = dt.time().addSecs(duration);
     QLabel *time = new QLabel(QString::number(dt.time().hour()) + ":"
-        + QString::number(dt.time().minute())
+        + (dt.time().minute() < 10 ? "0" : "") + QString::number(dt.time().minute())
         + " - " + QString::number(end.hour())
-        + ":" + QString::number(end.minute()), datetime);
+        + ":" + (end.minute() < 10 ? "0" : "") + QString::number(end.minute()), datetime);
+    time->setProperty("class", "calendar-event-page-info-time");
+    datetime->setProperty("class", "calendar-event-page-info");
+    datetimeLay->setContentsMargins(0, 0, 0, 0);
+    datetimeLay->setSpacing(0);
     datetimeLay->addWidget(date);
     datetimeLay->addWidget(time);
-    QWidget *datetimeInfo = buildInfoWidget(QPixmap(), datetime, scrollContent);
+    datetime->setProperty("class", "calendar-event-page-info");
+    QWidget *datetimeInfo = buildInfoWidget(QPixmap(QString(":/clock.png")), datetime, scrollContent);
     scrollLay->addWidget(datetimeInfo);
 
     QString desc = QString(icalcomponent_get_description(comp));
@@ -76,33 +102,56 @@ EventPage::EventPage(icalcomponent *comp, QDateTime dt, qint32 duration, QWidget
             QStringList intro = splits[1].split(']');
             if (intro.length() > 0) {
                 QLabel *classM = new QLabel(intro[1].trimmed(), scrollContent); 
-                QWidget *classInfo = buildInfoWidget(QPixmap(), classM, scrollContent);
+                classM->setProperty("class", "calendar-event-page-info");
+                QWidget *classInfo = buildInfoWidget(QPixmap(QString(":/list.png")), classM, scrollContent);
                 scrollLay->addWidget(classInfo);
             }
 
             const char *location = icalcomponent_get_location(comp);
-            if (!location) {
-                QLabel *classroom = new QLabel(QString("Room ") + icalcomponent_get_location(comp), scrollContent);
-                QWidget *classroomInfo = buildInfoWidget(QPixmap(), classroom, scrollContent);
+            if (!location && !QString(location).isEmpty()) {
+                QLabel *classroom = new QLabel(QString("Room ") + location, scrollContent);
+                classroom->setProperty("class", "calendar-event-page-info");
+                QWidget *classroomInfo = buildInfoWidget(QPixmap(QString(":/pin.png")), classroom, scrollContent);
                 scrollLay->addWidget(classroomInfo);
             }
 
-            QLabel *teacher = new QLabel(splits[5], scrollContent);
-            QWidget *teacherInfo = buildInfoWidget(QPixmap(), teacher, scrollContent);
-            scrollLay->addWidget(teacherInfo);
+            if (splits.length() > 5 && !QString(splits[5]).isEmpty()) {
+                QLabel *teacher = new QLabel(splits[5], scrollContent);
+                teacher->setProperty("class", "calendar-event-page-info");
+                QWidget *teacherInfo = buildInfoWidget(QPixmap(QString(":/graduation.png")), teacher, scrollContent);
+                scrollLay->addWidget(teacherInfo);
+            }
 
-            QLabel *group = new QLabel(QString("Group ") + splits[4], scrollContent);
-            QWidget *groupInfo = buildInfoWidget(QPixmap(), group, scrollContent);
-            scrollLay->addWidget(groupInfo);
+            if (splits.length() > 4 && !QString(splits[4]).isEmpty()) {
+                QLabel *group = new QLabel(QString("Group ") + splits[4], scrollContent);
+                group->setProperty("class", "calendar-event-page-info");
+                QWidget *groupInfo = buildInfoWidget(QPixmap(QString(":/group.png")), group, scrollContent);
+                scrollLay->addWidget(groupInfo);
+            }
         }
     }
 
+    scrollLay->addSpacing(50);
     QLabel *descTitle = new QLabel("Description", scrollContent);
+    descTitle->setProperty("class", "calendar-event-page-subtitle");
+    QWidget *line2 = new QWidget(scrollContent);
+    line2->setFixedSize(170, 10);
+    line2->setProperty("class", "calendar-event-page-line");
+    line2->setAttribute(Qt::WA_StyledBackground, true);
     scrollLay->addWidget(descTitle);
+    scrollLay->addWidget(line2);
     QLabel *descContent = new QLabel(desc.replace('\n', ' ').trimmed(), scrollContent);
+    descContent->setWordWrap(true);
+    descContent->setProperty("class", "calendar-event-page-description-content");
     scrollLay->addWidget(descContent);
+    scrollLay->setContentsMargins(5, 5, 5, 5);
+    scrollLay->setSpacing(0);
 
     scroll->setWidget(scrollContent);
+    scroll->setWidgetResizable(true);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scroll->setAttribute(Qt::WA_StyledBackground, true);
+    scroll->setProperty("class", "calendar-event-page-scroll");
     lay->addWidget(scroll);
 
 

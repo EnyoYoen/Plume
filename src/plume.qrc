@@ -4,6 +4,14 @@
         <file alias="plume-style.css">../assets/style/plume-style.css</file>
         <file alias="three-dots.png">../assets/images/three-dots.png</file>
         <file alias="calendar.png">../assets/images/calendar.png</file>
+        <file alias="left-arrow.png">../assets/images/left-arrow.png</file>
+        <file alias="right-arrow.png">../assets/images/right-arrow.png</file>
         <file alias="icon.png">../assets/images/icon.png</file>
+        <file alias="clock.png">../assets/images/clock.png</file>
+        <file alias="list.png">../assets/images/list.png</file>
+        <file alias="pin.png">../assets/images/pin.png</file>
+        <file alias="graduation.png">../assets/images/graduation.png</file>
+        <file alias="group.png">../assets/images/group.png</file>
+        <file alias="left.png">../assets/images/left.png</file>
     </qresource>
 </RCC>

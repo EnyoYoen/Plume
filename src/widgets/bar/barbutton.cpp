@@ -1,13 +1,11 @@
-#include "button.h"
+#include "barbutton.h"
 
 #include <QHBoxLayout>
 #include <QFontMetrics>
 
 BarButton::BarButton(BarButton::Type type, QWidget *parent)
-    : QLabel(parent)
+    : Button(parent)
 {
-    pressed = false;
-
     content = new QLabel(this);
     content->setFixedSize(48, 48);
 
@@ -28,37 +26,8 @@ BarButton::BarButton(BarButton::Type type, QWidget *parent)
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(content, 0, Qt::AlignHCenter);
 
-    setProperty("class", "bar-button");
+    setProperty("class", property("class").toString() + " bar-button");
 
-    setCursor(Qt::CursorShape::PointingHandCursor);
     setContentsMargins(8, 8, 8, 8);
     setFixedSize(64, 64);
-}
-
-
-void BarButton::mouseReleaseEvent(QMouseEvent *event)
-{
-    if (event->button() == Qt::LeftButton) {
-        pressed = false;
-        emit clicked();
-    }
-}
-
-void BarButton::mousePressEvent(QMouseEvent *)
-{
-    pressed = true;
-}
-
-void BarButton::enterEvent(QEnterEvent *)
-{
-    if (!pressed) {
-
-    }
-}
-
-void BarButton::leaveEvent(QEvent *)
-{
-    if (!pressed) {
-
-    }
 }

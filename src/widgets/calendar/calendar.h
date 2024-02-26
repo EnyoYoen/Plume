@@ -10,10 +10,11 @@
 
 #include "libical/ical.h"
 
+#include "typedefs.h"
 #include "event.h"
 #include "eventpage.h"
-
-typedef QPair<QDateTime, double> Timestamp;
+#include "settings.h"
+#include "addcalendarpage.h"
 
 class Calendar : public QWidget
 {
@@ -51,7 +52,7 @@ private:
     QStringList getICSFilePaths();
 
     void loadRemoteICS(QString url);
-    void loadICS(QString content);
+    void loadICS(QString content, QString name, QUrl url);
     void loadEvents();
 
     void updateSizes();
@@ -65,18 +66,27 @@ private:
     qint64 spanDuration;
     SpanType spanType;
     QTimeZone timezone;
+    quint8 month;
+    qint64 year;
+    bool reset = false;
 
     QHash<QDate, QList<QPair<QDateTime, icalcomponent *>>> components;
+    QHash<CalendarName, QList<icalcomponent *>> calendarsComponents;
+    QHash<icalcomponent *, bool> hiddenComponents;
     QHash<QDate, QList<QPair<Event *, Timestamp>>> events;
     QList<QPair<Event *, Timestamp>> eventList;
 
     QVBoxLayout *lay = nullptr;
     QWidget *contentHeader = nullptr;
+    QHBoxLayout *contentHeaderLay = nullptr;
+    QLabel *headerDate = nullptr;
     QScrollArea *scroll = nullptr;
     QWidget *content = nullptr;
     QWidget *hourContainer = nullptr;
     QWidget *eventField = nullptr;
-    EventPage *ep = nullptr;
+    EventPage *ep = nullptr; // TODO : close these pages when switching to another widgets, to the settings or to an other span 
+    AddCalendarPage *addCalendarPage = nullptr;
+    Settings *settingsPopUp = nullptr;
     QList<QWidget *> dayLabels;
 
     qint32 columnWidth = 100;

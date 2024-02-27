@@ -140,17 +140,19 @@ void Calendar::loadUI()
             QObject::connect(settingsPopUp, &Settings::calendarsClicked, [this]() {
                 settingsPopUp->deleteLater();
                 settingsPopUp = nullptr;
-                addCalendarPage = new AddCalendarPage(calendarsComponents, this);
-                contentHeader->hide();
-                scroll->hide();
-                lay->addWidget(addCalendarPage);
-                QObject::connect(addCalendarPage, &AddCalendarPage::closed, [this]() {
-                    contentHeader->show();
-                    scroll->show();
-                    addCalendarPage->hide();
-                    addCalendarPage->deleteLater();
-                    addCalendarPage = nullptr;
-                });
+                if (addCalendarPage == nullptr) {
+                    addCalendarPage = new AddCalendarPage(calendarsComponents, this);
+                    contentHeader->hide();
+                    scroll->hide();
+                    lay->addWidget(addCalendarPage);
+                    QObject::connect(addCalendarPage, &AddCalendarPage::closed, [this]() {
+                        contentHeader->show();
+                        scroll->show();
+                        addCalendarPage->hide();
+                        addCalendarPage->deleteLater();
+                        addCalendarPage = nullptr;
+                    });
+                }
             });
 
             QObject::connect(settingsPopUp, &Settings::calendarClicked, [this](CalendarName name, bool enabled) {

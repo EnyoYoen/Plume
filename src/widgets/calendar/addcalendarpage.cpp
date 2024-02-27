@@ -14,16 +14,16 @@ QWidget *buildCalendarWidget(CalendarName name, qsizetype eventCount, QWidget *p
 
     QHBoxLayout *calendarLay = new QHBoxLayout(calendar);
     calendarLay->setSpacing(0);
-    calendarLay->setContentsMargins(0, 0, 0, 0);
+    calendarLay->setContentsMargins(10, 0, 10, 0);
 
     QLabel *calendarName = new QLabel(name.first.isNull() ? name.second.fileName() : name.first, parent);
-    calendar->setProperty("class", "calendar-add-calendar-page-calendar-name");
+    calendarName->setProperty("class", "calendar-add-calendar-page-calendar-name");
     calendarLay->addWidget(calendarName);
 
     calendarLay->addStretch();
     
     QLabel *events = new QLabel(QString::number(eventCount) + " incoming " + (eventCount > 1 ? "events" : "event"));
-    calendar->setProperty("class", "calendar-add-calendar-page-calendar-events");
+    events->setProperty("class", "calendar-add-calendar-page-calendar-events");
     calendarLay->addWidget(events);
 
     return calendar;
@@ -42,8 +42,8 @@ AddCalendarPage::AddCalendarPage(QHash<CalendarName, QList<icalcomponent *>> cal
     QObject::connect(backButton, &BackButton::clicked, [this](){ emit closed(); });
     QLabel *title = new QLabel("Calendars", header);
 
-    title->setProperty("class", "calendar-add-calendar-page-title");
-    header->setProperty("class", "calendar-add-calendar-page-header");
+    title->setProperty("class", "calendar-page-title");
+    header->setProperty("class", "calendar-page-header");
     headerLay->addWidget(backButton);
     headerLay->addWidget(title);
     headerLay->setContentsMargins(10, 10, 10, 10);
@@ -58,28 +58,35 @@ AddCalendarPage::AddCalendarPage(QHash<CalendarName, QList<icalcomponent *>> cal
     scrollLay->setSpacing(0);
     
     QLabel *sync = new QLabel("Synchronised calendars", scrollContent);
-    sync->setProperty("class", "calendar-add-calendar-page-subtitle");
+    sync->setProperty("class", "calendar-page-subtitle");
     QWidget *line1 = new QWidget(scrollContent);
     line1->setFixedSize(170, 10);
-    line1->setProperty("class", "calendar-add-calendar-page-line");
+    line1->setProperty("class", "calendar-page-line");
     line1->setAttribute(Qt::WA_StyledBackground, true);
+    scrollLay->addSpacing(10);
     scrollLay->addWidget(sync);
+    scrollLay->addSpacing(4);
     scrollLay->addWidget(line1);
+    scrollLay->addSpacing(8);
 
     for (CalendarName name : calendarsComponents.keys()) {
         QWidget *calendar = buildCalendarWidget(name, calendarsComponents[name].size(), scrollContent);
         scrollLay->addWidget(calendar);
     }
 
+    scrollLay->addSpacing(50);
+
 
     QLabel *add = new QLabel("Add calendars", scrollContent);
-    add->setProperty("class", "calendar-add-calendar-page-subtitle");
+    add->setProperty("class", "calendar-page-subtitle");
     QWidget *line2 = new QWidget(scrollContent);
     line2->setFixedSize(170, 10);
-    line2->setProperty("class", "calendar-add-calendar-page-line");
+    line2->setProperty("class", "calendar-page-line");
     line2->setAttribute(Qt::WA_StyledBackground, true);
     scrollLay->addWidget(add);
+    scrollLay->addSpacing(4);
     scrollLay->addWidget(line2);
+    scrollLay->addSpacing(8);
 
     QLineEdit *urlInput = new QLineEdit(scrollContent);
     urlInput->setPlaceholderText("Enter an URL here");
@@ -92,15 +99,16 @@ AddCalendarPage::AddCalendarPage(QHash<CalendarName, QList<icalcomponent *>> cal
         }
     });
     scrollLay->addWidget(urlInput);
+    scrollLay->addStretch();
 
     scroll->setWidget(scrollContent);
     scroll->setWidgetResizable(true);
     scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scroll->setAttribute(Qt::WA_StyledBackground, true);
-    scroll->setProperty("class", "calendar-add-calendar-page-scroll");
+    scroll->setProperty("class", "calendar-page-scroll");
     lay->addWidget(scroll);
 
 
-    setProperty("class", "calendar-add-calendar-page");
+    setProperty("class", "calendar-page");
     setAttribute(Qt::WA_StyledBackground);
 }

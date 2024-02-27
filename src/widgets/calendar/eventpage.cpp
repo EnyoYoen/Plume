@@ -52,8 +52,8 @@ EventPage::EventPage(icalcomponent *comp, QDateTime dt, qint32 duration, QWidget
     } else {
         title = new QLabel(summary, header);
     }
-    header->setProperty("class", "calendar-event-page-header");
-    title->setProperty("class", "calendar-event-page-title");
+    header->setProperty("class", "calendar-page-header");
+    title->setProperty("class", "calendar-page-title");
     headerLay->addWidget(backButton);
     headerLay->addWidget(title);
     headerLay->setContentsMargins(10, 10, 10, 20);
@@ -68,11 +68,14 @@ EventPage::EventPage(icalcomponent *comp, QDateTime dt, qint32 duration, QWidget
     QLabel *infoTitle = new QLabel("Informations", scrollContent);
     QWidget *line1 = new QWidget(scrollContent);
     line1->setFixedSize(170, 10);
-    line1->setProperty("class", "calendar-event-page-line");
+    line1->setProperty("class", "calendar-page-line");
     line1->setAttribute(Qt::WA_StyledBackground, true);
-    infoTitle->setProperty("class", "calendar-event-page-subtitle");
+    infoTitle->setProperty("class", "calendar-page-subtitle");
+    scrollLay->addSpacing(10);
     scrollLay->addWidget(infoTitle);
+    scrollLay->addSpacing(4);
     scrollLay->addWidget(line1);
+    scrollLay->addSpacing(8);
 
     QWidget *datetime = new QWidget(scrollContent);
     QVBoxLayout *datetimeLay = new QVBoxLayout(datetime);
@@ -100,7 +103,7 @@ EventPage::EventPage(icalcomponent *comp, QDateTime dt, qint32 duration, QWidget
         QStringList splits = desc.split('\n');
         if (splits.length() > 0) {
             QStringList intro = splits[1].split(']');
-            if (intro.length() > 0) {
+            if (intro.length() > 1 && !QString(intro[1]).trimmed().isEmpty()) {
                 QLabel *classM = new QLabel(intro[1].trimmed(), scrollContent); 
                 classM->setProperty("class", "calendar-event-page-info");
                 QWidget *classInfo = buildInfoWidget(QPixmap(QString(":/list.png")), classM, scrollContent);
@@ -133,28 +136,31 @@ EventPage::EventPage(icalcomponent *comp, QDateTime dt, qint32 duration, QWidget
 
     scrollLay->addSpacing(50);
     QLabel *descTitle = new QLabel("Description", scrollContent);
-    descTitle->setProperty("class", "calendar-event-page-subtitle");
+    descTitle->setProperty("class", "calendar-page-subtitle");
     QWidget *line2 = new QWidget(scrollContent);
     line2->setFixedSize(170, 10);
-    line2->setProperty("class", "calendar-event-page-line");
+    line2->setProperty("class", "calendar-page-line");
     line2->setAttribute(Qt::WA_StyledBackground, true);
     scrollLay->addWidget(descTitle);
+    scrollLay->addSpacing(4);
     scrollLay->addWidget(line2);
+    scrollLay->addSpacing(8);
     QLabel *descContent = new QLabel(desc.replace('\n', ' ').trimmed(), scrollContent);
     descContent->setWordWrap(true);
     descContent->setProperty("class", "calendar-event-page-description-content");
     scrollLay->addWidget(descContent);
     scrollLay->setContentsMargins(5, 5, 5, 5);
     scrollLay->setSpacing(0);
+    scrollLay->addStretch();
 
     scroll->setWidget(scrollContent);
     scroll->setWidgetResizable(true);
     scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scroll->setAttribute(Qt::WA_StyledBackground, true);
-    scroll->setProperty("class", "calendar-event-page-scroll");
+    scroll->setProperty("class", "calendar-page-scroll");
     lay->addWidget(scroll);
 
 
-    setProperty("class", "calendar-event-page");
+    setProperty("class", "calendar-page");
     setAttribute(Qt::WA_StyledBackground);
 }

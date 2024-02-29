@@ -7,8 +7,7 @@
 
 #include <QStandardPaths>
 #include <QFileInfo>
-
-#include "headerbutton.h"
+#include <QTimer>
 
 Calendar::Calendar(QWidget *parent)
     : QWidget(parent)
@@ -67,12 +66,34 @@ void Calendar::loadConfig()
 
 void Calendar::loadUI()
 {
+    // TODO : disable the shortcuts when switching to an other widget (home, mail, ...)
+    QShortcut *leftShortcut = new QShortcut(Qt::Key_Left, this);
+    QShortcut *rightShortcut = new QShortcut(Qt::Key_Right, this);
+    QShortcut *todayShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_T), this);
+    QShortcut *settingsShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), this);
+
+    QObject::connect(leftShortcut, &QShortcut::activated, [this]() {
+        spanStart = spanStart.addDays(spanDuration == 1 ? -1 : -7);
+        spanEnd = spanEnd.addDays(spanDuration == 1 ? -1 : -7);
+        loadEvents();
+    });
+    QObject::connect(rightShortcut, &QShortcut::activated, [this]() {
+        spanStart = spanStart.addDays(spanDuration == 1 ? 1 : 7);
+        spanEnd = spanEnd.addDays(spanDuration == 1 ? 1 : 7);
+        loadEvents();
+    });
+    QObject::connect(todayShortcut, &QShortcut::activated, [this]() {
+        resetSpan();
+        loadEvents();
+    });
+    QObject::connect(settingsShortcut, &QShortcut::activated, this, &Calendar::openSettings);
+
     lay = new QVBoxLayout(this);
     
     lay->setContentsMargins(0, 0, 0, 0);
     lay->setSpacing(0);
 
-    QWidget *header = new QWidget(this);
+    header = new QWidget(this);
     header->setProperty("class", "calendar-header");
     header->setFixedHeight(60);
     QHBoxLayout *headerLay = new QHBoxLayout(header);
@@ -83,10 +104,10 @@ void Calendar::loadUI()
     headerDate = new QLabel(months[currentDate.month() - 1] + QString(" ") + QString::number(currentDate.year()), header);
     headerDate->setProperty("class", "calendar-header-date");
 
-    HeaderButton *left = new HeaderButton(HeaderButton::Type::Left, header);
-    HeaderButton *right = new HeaderButton(HeaderButton::Type::Right, header);
-    HeaderButton *today = new HeaderButton(HeaderButton::Type::Today, header);
-    HeaderButton *settings = new HeaderButton(HeaderButton::Type::Settings, header);
+    left = new HeaderButton(HeaderButton::Type::Left, header);
+    right = new HeaderButton(HeaderButton::Type::Right, header);
+    today = new HeaderButton(HeaderButton::Type::Today, header);
+    settings = new HeaderButton(HeaderButton::Type::Settings, header);
 
     QObject::connect(left, &HeaderButton::clicked, [this]() {
         spanStart = spanStart.addDays(spanDuration == 1 ? -1 : -7);
@@ -102,101 +123,17 @@ void Calendar::loadUI()
         resetSpan();
         loadEvents();
     });
-    QObject::connect(settings, &HeaderButton::clicked, [this]() {
-        if (settingsPopUp != nullptr) {
-            settingsPopUp->deleteLater();
-            settingsPopUp = nullptr;
-        } else {
-            QHash<CalendarName, bool> calendarsEnabled;
-            for (CalendarName name : calendarsComponents.keys()) {
-                calendarsEnabled[name] = !disabledCalendars[name];
-            }
+    QObject::connect(settings, &HeaderButton::clicked, this, &Calendar::openSettings);
 
-            settingsPopUp = new Settings(calendarsEnabled, this);
-            settingsPopUp->setFixedSize(this->size());
-            settingsPopUp->move(0, 0);
-            settingsPopUp->show();
-            
-            QObject::connect(settingsPopUp, &Settings::closed, [this]() {
-                settingsPopUp->deleteLater();
-                settingsPopUp = nullptr;
-            });
-
-            QObject::connect(settingsPopUp, &Settings::calendarTypeClicked, [this](quint8 index) {
-                if (index + 1 == (quint8)spanType) return;
-
-                if (index + 1 == (quint8)SpanType::Month) return; // TODO : implement month calendars
-
-                if (spanType == SpanType::Day) {
-                    spanStart = spanStart.addDays(1 - spanStart.date().dayOfWeek());
-                }
-
-                spanType = (SpanType)(index + 1);
-                spanDuration = typeDuration[spanType];
-                spanEnd = spanStart.addDays(spanDuration - 1);
-                addToConfig("spanType", (qint32)spanType);
-
-                qsizetype s = dayLabels.size();
-                for (qsizetype i = s - 1 ; i > 0 ; i--) {
-                    dayLabels[i]->deleteLater();
-                    dayLabels.remove(i);
-                }
-
-                for (quint8 i = 1 ; i < (spanDuration > 7 ? 8 : spanDuration + 1) ; i++) {
-                    QLabel *day = new QLabel(contentHeader);
-                    day->setText(days[i] + QString(" ") + QString::number(spanStart.addDays(i).date().day()));
-                    day->setFixedWidth(columnWidth);
-                    day->setAlignment(Qt::AlignCenter);
-                    day->setProperty("class", "calendar-day");
-                    dayLabels.append(day);
-                    contentHeaderLay->addWidget(day, 0, Qt::AlignVCenter);
-                }
-                
-                updateSizes();
-                loadEvents();
-            });
-
-            QObject::connect(settingsPopUp, &Settings::calendarsClicked, [this]() {
-                settingsPopUp->deleteLater();
-                settingsPopUp = nullptr;
-                if (addCalendarPage == nullptr) {
-                    addCalendarPage = new AddCalendarPage(calendarsComponents, this);
-                    contentHeader->hide();
-                    scroll->hide();
-                    lay->addWidget(addCalendarPage);
-                    QObject::connect(addCalendarPage, &AddCalendarPage::closed, [this]() {
-                        contentHeader->show();
-                        scroll->show();
-                        addCalendarPage->hide();
-                        addCalendarPage->deleteLater();
-                        addCalendarPage = nullptr;
-                    });
-                }
-            });
-
-            QObject::connect(settingsPopUp, &Settings::calendarClicked, [this](CalendarName name, bool enabled) {
-                for (auto c : calendarsComponents[name]) {
-                    hiddenComponents[c] = !enabled;
-                }
-                
-                if (enabled) {
-                    disabledCalendars.remove(name);
-                } else {
-                    disabledCalendars[name] = true;
-                }
-                addToConfig("disabledCalendars", disabledCalendars);
-
-                loadEvents();
-            });
-        }
-    });
+    arrowSpacer1 = new QWidget(header);
+    arrowSpacer2 = new QWidget(header);
     
     headerLay->addWidget(headerDate, 0, Qt::AlignVCenter);
-    headerLay->addStretch();
+    headerLay->addWidget(arrowSpacer1);
     headerLay->addWidget(left, 0, Qt::AlignVCenter);
     headerLay->addSpacing(20);
     headerLay->addWidget(right, 0, Qt::AlignVCenter);
-    headerLay->addStretch();
+    headerLay->addWidget(arrowSpacer2);
     headerLay->addWidget(today, 0, Qt::AlignVCenter);
     headerLay->addSpacing(20);
     headerLay->addWidget(settings, 0, Qt::AlignVCenter);
@@ -287,17 +224,11 @@ void Calendar::loadCalendars()
 {
     resetSpan();
 
-    checkDataFolder();
+    resetCalendars();
 
-    for (QString url : getICSUrls()) {
-        loadRemoteICS(url);
-    }
-
-    for (QString filename : getICSFilePaths()) {
-        QFile file(calendarFolderPath + "ics/" + filename);
-        file.open(QFile::ReadOnly);
-        loadICS(file.readAll(), filename, QUrl());
-    }
+    refreshTimer = new QTimer(this);
+    QObject::connect(refreshTimer, &QTimer::timeout, [this]() { resetCalendars(); });
+    refreshTimer->start(1000 * 60 * 1/60);
 }
 
 void Calendar::resetSpan()
@@ -319,6 +250,21 @@ void Calendar::resetSpan()
             spanStart = spanStart.addDays(1 - spanStart.date().dayOfWeek());
     }
     spanEnd = QDateTime(spanStart.date().addDays(spanDuration), QTime(0, 0));
+}
+
+void Calendar::resetCalendars()
+{
+    checkDataFolder();
+
+    for (QString url : getICSUrls()) {
+        loadRemoteICS(url);
+    }
+
+    for (QString filename : getICSFilePaths()) {
+        QFile file(calendarFolderPath + "ics/" + filename);
+        file.open(QFile::ReadOnly);
+        loadICS(file.readAll(), filename, QUrl());
+    }
 }
 
 bool Calendar::addToConfig(QString name, QVariant value)
@@ -352,6 +298,96 @@ bool Calendar::addToConfig(QString name, QVariant value)
     }
     configFile.close();
     return ok;
+}
+
+void Calendar::openSettings()
+{
+    if (settingsPopUp != nullptr) {
+        settingsPopUp->deleteLater();
+        settingsPopUp = nullptr;
+    } else {
+        QHash<CalendarName, bool> calendarsEnabled;
+        for (CalendarName name : calendarsComponents.keys()) {
+            calendarsEnabled[name] = !disabledCalendars[name];
+        }
+
+        settingsPopUp = new Settings(calendarsEnabled, this);
+        settingsPopUp->setFixedSize(this->size());
+        settingsPopUp->move(0, 0);
+        settingsPopUp->show();
+        
+        QObject::connect(settingsPopUp, &Settings::closed, [this]() {
+            settingsPopUp->deleteLater();
+            settingsPopUp = nullptr;
+        });
+
+        QObject::connect(settingsPopUp, &Settings::calendarTypeClicked, [this](quint8 index) {
+            if (index + 1 == (quint8)spanType) return;
+
+            if (index + 1 == (quint8)SpanType::Month) return; // TODO : implement month calendars
+
+            if (spanType == SpanType::Day) {
+                spanStart = spanStart.addDays(1 - spanStart.date().dayOfWeek());
+            }
+
+            spanType = (SpanType)(index + 1);
+            spanDuration = typeDuration[spanType];
+            spanEnd = spanStart.addDays(spanDuration - 1);
+            addToConfig("spanType", (qint32)spanType);
+
+            qsizetype s = dayLabels.size();
+            for (qsizetype i = s - 1 ; i > 0 ; i--) {
+                dayLabels[i]->deleteLater();
+                dayLabels.remove(i);
+            }
+
+            for (quint8 i = 1 ; i < (spanDuration > 7 ? 8 : spanDuration + 1) ; i++) {
+                QLabel *day = new QLabel(contentHeader);
+                day->setText(days[i] + QString(" ") + QString::number(spanStart.addDays(i).date().day()));
+                day->setFixedWidth(columnWidth);
+                day->setAlignment(Qt::AlignCenter);
+                day->setProperty("class", "calendar-day");
+                dayLabels.append(day);
+                contentHeaderLay->addWidget(day, 0, Qt::AlignVCenter);
+            }
+            
+            updateSizes();
+            loadEvents();
+        });
+
+        QObject::connect(settingsPopUp, &Settings::calendarsClicked, [this]() {
+            settingsPopUp->deleteLater();
+            settingsPopUp = nullptr;
+            if (addCalendarPage == nullptr) {
+                addCalendarPage = new AddCalendarPage(calendarsComponents, this);
+                contentHeader->hide();
+                scroll->hide();
+                lay->addWidget(addCalendarPage);
+                QObject::connect(addCalendarPage, &AddCalendarPage::closed, [this]() {
+                    contentHeader->show();
+                    scroll->show();
+                    addCalendarPage->hide();
+                    addCalendarPage->deleteLater();
+                    addCalendarPage = nullptr;
+                });
+            }
+        });
+
+        QObject::connect(settingsPopUp, &Settings::calendarClicked, [this](CalendarName name, bool enabled) {
+            for (auto c : calendarsComponents[name]) {
+                hiddenComponents[c] = !enabled;
+            }
+            
+            if (enabled) {
+                disabledCalendars.remove(name);
+            } else {
+                disabledCalendars[name] = true;
+            }
+            addToConfig("disabledCalendars", disabledCalendars);
+
+            loadEvents();
+        });
+    }
 }
 
 bool Calendar::addToConfig(QString name, QHash<CalendarName, bool> value)
@@ -489,6 +525,57 @@ void Calendar::loadICS(QString content, QString name, QUrl url)
     for (CalendarName cname : disabledCalendars.keys()) {
         if (cname.first == name || cname.second == url) {
             found = true;
+            break;
+        }
+    }
+    
+    for (CalendarName cname : calendarsComponents.keys()) {
+        if (cname.first == name || cname.second == url) {
+            qsizetype count = 0;
+            for (auto c : calendarsComponents[cname]) {
+                bool cfound = false;
+                for (auto list : components.values()) {
+                    for (qsizetype i = 0 ; i < list.size() ; i++) {
+                        if (list[i].second == c) {
+                            list.remove(i);
+                            cfound = true;
+                            count++;
+                            break;
+                        }
+                    }
+                    if (cfound) 
+                        break;
+                }
+
+                for (auto hc : hiddenComponents.keys()) {
+                    if (hc == c)
+                        hiddenComponents.remove(hc);
+                }
+                icalcomponent_free(c);
+
+                for (auto list : events.values()) {
+                    for (qsizetype i = 0 ; i < list.size() ; i++) {
+                        if (list[i].first->c == c) {
+                            list[i].first->deleteLater();
+                            list.remove(i);
+                            cfound = true;
+                            break;
+                        }
+                    }
+                    if (cfound) 
+                        break;
+                }
+
+                for (qsizetype i = 0 ; i < eventList.size() ; i++) {
+                    if (eventList[i].first->c == c) {
+                        eventList[i].first->deleteLater();
+                        eventList.remove(i);
+                    }
+                }
+            }
+            calendarsComponents.remove(cname);
+            qDebug() << count;
+            break;
         }
     }
 
@@ -538,6 +625,7 @@ void Calendar::loadEvents()
         year = spanStart.date().year();
         reset = false;
         headerDate->setText(months[month - 1] + QString(" ") + QString::number(year));
+        updateArrows();
     }
 
     QList<Event *> actualEvents;
@@ -605,6 +693,19 @@ void Calendar::loadEvents()
         e->show();
 }
 
+void Calendar::updateArrows()
+{
+    int headerWidth = header->width();
+    int leftWidth = 20 + headerDate->width();
+    int rightWidth = 20 + settings->width() + 20 + today->width();
+    int arrowsWidth = left->width() + 20 + right->width();
+
+    if ((headerWidth - arrowsWidth) / 2 - leftWidth >= 0)
+        arrowSpacer1->setFixedWidth((headerWidth - arrowsWidth) / 2 - leftWidth);
+    if ((headerWidth - arrowsWidth) / 2 - rightWidth >= 0)
+        arrowSpacer2->setFixedWidth((headerWidth - arrowsWidth) / 2 - rightWidth);
+}
+
 void Calendar::updateSizes()
 {
     QSize contentSize = content->size();
@@ -636,6 +737,8 @@ void Calendar::updateSizes()
     if (settingsPopUp != nullptr) {
         settingsPopUp->setFixedSize(this->size());
     }
+
+    updateArrows();
 }
 
 
@@ -644,7 +747,6 @@ void Calendar::showEvent(QShowEvent *)
     updateSizes();
     QScrollBar *vsb = scroll->verticalScrollBar();
     vsb->setValue(vsb->maximum() / 2);
-
 }
 
 void Calendar::resizeEvent(QResizeEvent *)

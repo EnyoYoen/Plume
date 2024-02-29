@@ -1,9 +1,11 @@
 #pragma once
 
+#include <QShortcut>
 #include <QWidget>
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QScrollArea>
+
 #include <QNetworkAccessManager>
 #include <QDir>
 #include <QTimeZone>
@@ -11,6 +13,7 @@
 #include "libical/ical.h"
 
 #include "typedefs.h"
+#include "headerbutton.h"
 #include "event.h"
 #include "eventpage.h"
 #include "settings.h"
@@ -22,6 +25,9 @@ class Calendar : public QWidget
 
 public:
     Calendar(QWidget *parent);
+
+private slots:
+    void openSettings();
 
 private:
     enum class SpanType : quint8 {
@@ -45,6 +51,7 @@ private:
     void loadUI();
     void loadCalendars();
     void resetSpan();
+    void resetCalendars();
     bool addToConfig(QString name, QVariant value);
     bool addToConfig(QString name, QHash<CalendarName, bool> value);
 
@@ -56,6 +63,7 @@ private:
     void loadICS(QString content, QString name, QUrl url);
     void loadEvents();
 
+    void updateArrows();
     void updateSizes();
 
     void showEvent(QShowEvent *) override;
@@ -81,7 +89,14 @@ private:
     QVBoxLayout *lay = nullptr;
     QWidget *contentHeader = nullptr;
     QHBoxLayout *contentHeaderLay = nullptr;
+    QWidget *header = nullptr;
     QLabel *headerDate = nullptr;
+    HeaderButton *left = nullptr;
+    HeaderButton *right = nullptr;
+    HeaderButton *today = nullptr;
+    HeaderButton *settings = nullptr;
+    QWidget *arrowSpacer1 = nullptr;
+    QWidget *arrowSpacer2 = nullptr;
     QScrollArea *scroll = nullptr;
     QWidget *content = nullptr;
     QWidget *hourContainer = nullptr;
@@ -90,6 +105,13 @@ private:
     AddCalendarPage *addCalendarPage = nullptr;
     Settings *settingsPopUp = nullptr;
     QList<QWidget *> dayLabels;
+
+    QShortcut *leftShortcut = nullptr;
+    QShortcut *rightShortcut = nullptr;
+    QShortcut *todayShortcut = nullptr;
+    QShortcut *settingsShortcut = nullptr;
+
+    QTimer *refreshTimer = nullptr;
 
     qint32 columnWidth = 100;
     qint32 rowHeight = 60;

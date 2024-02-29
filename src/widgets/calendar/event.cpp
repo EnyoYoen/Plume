@@ -1,7 +1,7 @@
 #include "event.h"
 
 Event::Event(QDateTime datetime, icalcomponent *comp, QWidget *parent)
-    : QWidget(parent)
+    : c(comp), QWidget(parent)
 {
     lay = new QVBoxLayout(this);
     

@@ -20,6 +20,7 @@ public:
 
     qint8 order = 0;
     qint8 reduceFactor = 1;
+    icalcomponent *c;
 
 signals:
     void clicked();

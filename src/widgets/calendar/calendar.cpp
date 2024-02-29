@@ -44,6 +44,20 @@ void Calendar::loadConfig()
                         spanType = (SpanType)result;
                     }
                 }
+            } else if (line.startsWith("disabledCalendars")) {
+                QStringList splits = line.split(':');
+                if (splits.size() == 2 && splits[1].startsWith('[') && splits[1].endsWith(']')) {
+                    QStringList names = splits[1].mid(1, splits[1].size() - 2).split(',');
+                    for (QString name : names) {
+                        if (name.startsWith('(') && name.endsWith(')')) {
+                            QStringList namePair = name.mid(1, name.size() - 2).split('/');
+                            if (namePair.size() == 2) {
+                                disabledCalendars[CalendarName(namePair[0].isEmpty() ? QString() : namePair[0],
+                                    namePair[1].isEmpty() ? QUrl() : QUrl::fromPercentEncoding(namePair[1].toUtf8()))] = true;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -93,7 +107,12 @@ void Calendar::loadUI()
             settingsPopUp->deleteLater();
             settingsPopUp = nullptr;
         } else {
-            settingsPopUp = new Settings(calendarsComponents.keys(), this);
+            QHash<CalendarName, bool> calendarsEnabled;
+            for (CalendarName name : calendarsComponents.keys()) {
+                calendarsEnabled[name] = !disabledCalendars[name];
+            }
+
+            settingsPopUp = new Settings(calendarsEnabled, this);
             settingsPopUp->setFixedSize(this->size());
             settingsPopUp->move(0, 0);
             settingsPopUp->show();
@@ -159,6 +178,14 @@ void Calendar::loadUI()
                 for (auto c : calendarsComponents[name]) {
                     hiddenComponents[c] = !enabled;
                 }
+                
+                if (enabled) {
+                    disabledCalendars.remove(name);
+                } else {
+                    disabledCalendars[name] = true;
+                }
+                addToConfig("disabledCalendars", disabledCalendars);
+
                 loadEvents();
             });
         }
@@ -262,8 +289,9 @@ void Calendar::loadCalendars()
 
     checkDataFolder();
 
-    for (QString url : getICSUrls())
+    for (QString url : getICSUrls()) {
         loadRemoteICS(url);
+    }
 
     for (QString filename : getICSFilePaths()) {
         QFile file(calendarFolderPath + "ics/" + filename);
@@ -300,6 +328,49 @@ bool Calendar::addToConfig(QString name, QVariant value)
     bool found = false;
     QStringList configLines;
     QString configLine = name + ":" + value.toString();
+    QFile configFile(calendarFolderPath + "config.txt");
+    if (configFile.open(QFile::ReadOnly)) {
+        QString config = configFile.readAll();
+        configLines = config.split('\n', Qt::SplitBehaviorFlags::SkipEmptyParts);
+        for (quint64 i = 0 ; i < configLines.size() ; i++) {
+            if (configLines[i].startsWith(name)) {
+                configLines[i] = configLine;
+                found = true;
+            }
+        }
+    }
+    if (!found) {
+        configLines.append(configLine);
+    }
+    configFile.close();
+
+    bool ok = true;
+    if (configFile.open(QFile::WriteOnly)) {
+        configFile.write(configLines.join('\n').toStdString().c_str());
+    } else {
+        ok = false;
+    }
+    configFile.close();
+    return ok;
+}
+
+bool Calendar::addToConfig(QString name, QHash<CalendarName, bool> value)
+{
+    checkDataFolder();
+
+    QString configLine = name + ":[";
+    qsizetype i = 0;
+    for (CalendarName name : value.keys()) {
+        i++;
+        configLine.append("(" + name.first + "/" + QUrl::toPercentEncoding(name.second.url()) + ")");
+        if (i < value.size()) {
+            configLine.append(',');
+        }
+    }
+    configLine.append(']');
+
+    bool found = false;
+    QStringList configLines;
     QFile configFile(calendarFolderPath + "config.txt");
     if (configFile.open(QFile::ReadOnly)) {
         QString config = configFile.readAll();
@@ -414,6 +485,13 @@ QList<Event *> intersections(QHash<Event *,Timestamp> pairs, Timestamp t)
 
 void Calendar::loadICS(QString content, QString name, QUrl url)
 {
+    bool found = false;
+    for (CalendarName cname : disabledCalendars.keys()) {
+        if (cname.first == name || cname.second == url) {
+            found = true;
+        }
+    }
+
     icalcomponent *cal = icalparser_parse_string(content.toStdString().c_str());
     QList<icalcomponent *> comps;
     if (icalcomponent_is_valid(cal)) {
@@ -432,6 +510,9 @@ void Calendar::loadICS(QString content, QString name, QUrl url)
             icalcomponent *cc = icalcomponent_clone(c);
             components[date].append(QPair<QDateTime, icalcomponent *>(datetime, cc));  
             comps.append(cc);
+
+            if (found)
+                hiddenComponents[cc] = true;
         }
 
         calendarsComponents[CalendarName(name, url)] = comps;

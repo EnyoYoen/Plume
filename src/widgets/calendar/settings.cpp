@@ -8,8 +8,8 @@
 #include "enablebutton.h"
 
 // TODO : use a QHash to know if the calendar is enabled for each calendar name
-Settings::Settings(QList<CalendarName> calendarsNames, QWidget *parent)
-    : QWidget(parent)
+Settings::Settings(QHash<CalendarName, bool> pcalendarEnabled, QWidget *parent)
+    : calendarsEnabled(pcalendarEnabled), QWidget(parent)
 {
     QVBoxLayout *lay = new QVBoxLayout(this);
     lay->setSpacing(0);
@@ -70,22 +70,21 @@ Settings::Settings(QList<CalendarName> calendarsNames, QWidget *parent)
     innerLay->addWidget(calendars);
 
 
-    for (qsizetype i = 0 ; i < calendarsNames.size() ; i++) {
+    for (CalendarName name : calendarsEnabled.keys()) {
         QList<QWidget *> calendarContent;
-        QString name = (calendarsNames[i].first.isNull() ? calendarsNames[i].second.fileName() : calendarsNames[i].first);
-        calendarContent.append(new QLabel(name));
+        QString nameStr = (name.first.isNull() ? name.second.fileName() : name.first);
+        calendarContent.append(new QLabel(nameStr));
         calendarContent[0]->setProperty("class", "calendar-settings-button-text");
-        EnableButton *button = new EnableButton(true, nullptr);
+        EnableButton *button = new EnableButton(calendarsEnabled[name], nullptr);
         calendarContent.append(button);
         SettingsButton *calendar = new SettingsButton(calendarContent, 1, 20, innerContent);
-        enable[calendarsNames[i]] = true;
         innerLay->addWidget(calendar);
 
-        QObject::connect(calendar, &SettingsButton::clicked, [this, button, i, calendarsNames]() {
-            bool enabled = enable[calendarsNames[i]];
-            enable[calendarsNames[i]] = !enabled;
+        QObject::connect(calendar, &SettingsButton::clicked, [this, button, name]() {
+            bool enabled = calendarsEnabled[name];
+            calendarsEnabled[name] = !enabled;
             button->setEnable(!enabled);
-            emit calendarClicked(calendarsNames[i], !enabled);
+            emit calendarClicked(name, !enabled);
         });
     }
     innerLay->addStretch();

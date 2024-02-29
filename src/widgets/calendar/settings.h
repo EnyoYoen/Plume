@@ -9,7 +9,7 @@ class Settings : public QWidget
 {
     Q_OBJECT
 public:
-    Settings(QList<CalendarName> calendarsNames, QWidget *parent);
+    Settings(QHash<CalendarName, bool> calendarsEnabled, QWidget *parent);
 
 signals:
     void closed();
@@ -22,5 +22,5 @@ private:
 
     QWidget *innerContent = nullptr;
 
-    QHash<CalendarName, bool> enable;
+    QHash<CalendarName, bool> calendarsEnabled;
 };

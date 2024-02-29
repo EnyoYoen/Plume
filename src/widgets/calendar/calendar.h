@@ -46,6 +46,7 @@ private:
     void loadCalendars();
     void resetSpan();
     bool addToConfig(QString name, QVariant value);
+    bool addToConfig(QString name, QHash<CalendarName, bool> value);
 
     void checkDataFolder();
     QStringList getICSUrls();
@@ -75,6 +76,7 @@ private:
     QHash<icalcomponent *, bool> hiddenComponents;
     QHash<QDate, QList<QPair<Event *, Timestamp>>> events;
     QList<QPair<Event *, Timestamp>> eventList;
+    QHash<CalendarName, bool> disabledCalendars;
 
     QVBoxLayout *lay = nullptr;
     QWidget *contentHeader = nullptr;

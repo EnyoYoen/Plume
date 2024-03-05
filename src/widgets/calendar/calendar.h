@@ -79,9 +79,10 @@ private:
     qint64 year;
     bool reset = false;
 
-    QHash<QDate, QList<QPair<QDateTime, icalcomponent *>>> components;
+    QHash<QDate, QHash<icalcomponent *, QDateTime>> components;
     QHash<CalendarName, QList<icalcomponent *>> calendarsComponents;
     QHash<icalcomponent *, bool> hiddenComponents;
+    QHash<icalcomponent *, QDate> componentsIndex;
     QHash<QDate, QList<QPair<Event *, Timestamp>>> events;
     QList<QPair<Event *, Timestamp>> eventList;
     QHash<CalendarName, bool> disabledCalendars;

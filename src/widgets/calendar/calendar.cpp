@@ -228,7 +228,7 @@ void Calendar::loadCalendars()
 
     refreshTimer = new QTimer(this);
     QObject::connect(refreshTimer, &QTimer::timeout, [this]() { resetCalendars(); });
-    refreshTimer->start(1000 * 60 * 1/60);
+    refreshTimer->start(1000 * 60 * 5);
 }
 
 void Calendar::resetSpan()
@@ -529,55 +529,15 @@ void Calendar::loadICS(QString content, QString name, QUrl url)
         }
     }
     
-    for (CalendarName cname : calendarsComponents.keys()) {
-        if (cname.first == name || cname.second == url) {
-            qsizetype count = 0;
-            for (auto c : calendarsComponents[cname]) {
-                bool cfound = false;
-                for (auto list : components.values()) {
-                    for (qsizetype i = 0 ; i < list.size() ; i++) {
-                        if (list[i].second == c) {
-                            list.remove(i);
-                            cfound = true;
-                            count++;
-                            break;
-                        }
-                    }
-                    if (cfound) 
-                        break;
-                }
+    CalendarName cname(name, url);
+    for (auto c : calendarsComponents[cname]) {
+        components[componentsIndex[c]].remove(c);
+        componentsIndex.remove(c);
+        hiddenComponents.remove(c);
 
-                for (auto hc : hiddenComponents.keys()) {
-                    if (hc == c)
-                        hiddenComponents.remove(hc);
-                }
-                icalcomponent_free(c);
-
-                for (auto list : events.values()) {
-                    for (qsizetype i = 0 ; i < list.size() ; i++) {
-                        if (list[i].first->c == c) {
-                            list[i].first->deleteLater();
-                            list.remove(i);
-                            cfound = true;
-                            break;
-                        }
-                    }
-                    if (cfound) 
-                        break;
-                }
-
-                for (qsizetype i = 0 ; i < eventList.size() ; i++) {
-                    if (eventList[i].first->c == c) {
-                        eventList[i].first->deleteLater();
-                        eventList.remove(i);
-                    }
-                }
-            }
-            calendarsComponents.remove(cname);
-            qDebug() << count;
-            break;
-        }
+        icalcomponent_free(c);
     }
+    calendarsComponents.remove(cname);
 
     icalcomponent *cal = icalparser_parse_string(content.toStdString().c_str());
     QList<icalcomponent *> comps;
@@ -592,10 +552,11 @@ void Calendar::loadICS(QString content, QString name, QUrl url)
             datetime.toTimeZone(timezone);
             QDate date = datetime.date();
             if (!components.contains(date)) {
-                components[date] = QList<QPair<QDateTime, icalcomponent *>>();
+                components[date] = QHash<icalcomponent *, QDateTime>();
             }
             icalcomponent *cc = icalcomponent_clone(c);
-            components[date].append(QPair<QDateTime, icalcomponent *>(datetime, cc));  
+            components[date][cc] = datetime;
+            componentsIndex[cc] = date;
             comps.append(cc);
 
             if (found)
@@ -631,11 +592,11 @@ void Calendar::loadEvents()
     QList<Event *> actualEvents;
     QDate date = spanStart.date();
     for (quint8 i = 0 ; i < spanDuration ; i++) {
-        for (auto componentPair : components[date]) {
-            icalcomponent *c = componentPair.second;
+        auto componentsDate = components[date];
+        for (auto c : componentsDate.keys()) {
             if (hiddenComponents[c]) continue;
 
-            QDateTime datetime = componentPair.first;
+            QDateTime datetime = componentsDate[c];
             QTime time = datetime.time();
             qint32 columnPos = (date.day() - spanStart.date().day()) * columnWidth + 2;
             qint32 rowPos = ((double)time.hour() + (double)time.minute() / 60 + (double)time.second() / 3600 + 1.0) * rowHeight + 2;

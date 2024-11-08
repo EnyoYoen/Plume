@@ -28,6 +28,7 @@ set(SOURCES
     "src/widgets/calendar/settingsbutton.cpp"
     "src/widgets/calendar/settings.cpp"
     "src/widgets/calendar/addcalendarpage.cpp"
+    "src/widgets/calendar/config.cpp"
     "src/widgets/common/button.cpp"
     "src/widgets/mail/mail.cpp"
 )
@@ -46,6 +47,7 @@ set(HEADERS
     "src/widgets/calendar/settingsbutton.h"
     "src/widgets/calendar/settings.h"
     "src/widgets/calendar/addcalendarpage.h"
+    "src/widgets/calendar/config.h"
     "src/widgets/common/button.h"
     "src/widgets/mail/mail.h"
 )

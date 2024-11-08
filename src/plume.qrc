@@ -2,8 +2,10 @@
     <qresource>
         <file alias="whitney.otf">../assets/fonts/whitney.otf</file>
         <file alias="plume-style.css">../assets/style/plume-style.css</file>
-        <file alias="three-dots.png">../assets/images/three-dots.png</file>
+        <file alias="home.png">../assets/images/home.png</file>
         <file alias="calendar.png">../assets/images/calendar.png</file>
+        <file alias="email.png">../assets/images/email.png</file>
+        <file alias="three-dots.png">../assets/images/three-dots.png</file>
         <file alias="left-arrow.png">../assets/images/left-arrow.png</file>
         <file alias="right-arrow.png">../assets/images/right-arrow.png</file>
         <file alias="icon.png">../assets/images/icon.png</file>

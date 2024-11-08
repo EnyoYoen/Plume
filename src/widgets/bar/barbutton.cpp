@@ -12,13 +12,13 @@ BarButton::BarButton(BarButton::Type type, QWidget *parent)
     switch (type)
     {
         case BarButton::Type::Home:
-            content->setText("Home");
+            content->setPixmap(QPixmap(":/home.png").scaled(40, 40, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
             break;
         case BarButton::Type::Calendar:
-            content->setText("Calendar");
+            content->setPixmap(QPixmap(":/calendar.png").scaled(40, 40, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
             break;
         case BarButton::Type::Mail:
-            content->setText("Mail");
+            content->setPixmap(QPixmap(":/email.png").scaled(40, 40, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
             break;
     }
 

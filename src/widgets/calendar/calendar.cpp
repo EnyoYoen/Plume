@@ -5,63 +5,14 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 
-#include <QStandardPaths>
-#include <QFileInfo>
 #include <QTimer>
 
 Calendar::Calendar(QWidget *parent)
     : QWidget(parent)
 {
-    loadConfig();
+    config.load();
     loadUI();
     loadCalendars();
-}
-
-void Calendar::loadConfig()
-{
-    typeDuration.insert(SpanType::None,      0);
-    typeDuration.insert(SpanType::Day,       1);
-    typeDuration.insert(SpanType::NoWeekend, 5);
-    typeDuration.insert(SpanType::Week,      7);
-    typeDuration.insert(SpanType::Month,     30);
-
-    checkDataFolder();
-
-    spanType = SpanType::NoWeekend;
-
-    QFile configFile(calendarFolderPath + "config.txt");
-    if (configFile.open(QFile::ReadOnly)) {
-        QString config = configFile.readAll();
-        QStringList configLines = config.split('\n');
-        for (QString line : configLines) {
-            if (line.startsWith("spanType")) {
-                QStringList splits = line.split(':');
-                if (splits.size() == 2) {
-                    bool ok = true;
-                    int result = splits[1].toInt(&ok);
-                    if (ok && (spanType <= SpanType::Month && spanType > SpanType::None)) {
-                        spanType = (SpanType)result;
-                    }
-                }
-            } else if (line.startsWith("disabledCalendars")) {
-                QStringList splits = line.split(':');
-                if (splits.size() == 2 && splits[1].startsWith('[') && splits[1].endsWith(']')) {
-                    QStringList names = splits[1].mid(1, splits[1].size() - 2).split(',');
-                    for (QString name : names) {
-                        if (name.startsWith('(') && name.endsWith(')')) {
-                            QStringList namePair = name.mid(1, name.size() - 2).split('/');
-                            if (namePair.size() == 2) {
-                                disabledCalendars[CalendarName(namePair[0].isEmpty() ? QString() : namePair[0],
-                                    namePair[1].isEmpty() ? QUrl() : QUrl::fromPercentEncoding(namePair[1].toUtf8()))] = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    spanDuration = typeDuration[spanType];
 }
 
 void Calendar::loadUI()
@@ -73,13 +24,13 @@ void Calendar::loadUI()
     QShortcut *settingsShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), this);
 
     QObject::connect(leftShortcut, &QShortcut::activated, [this]() {
-        spanStart = spanStart.addDays(spanDuration == 1 ? -1 : -7);
-        spanEnd = spanEnd.addDays(spanDuration == 1 ? -1 : -7);
+        spanStart = spanStart.addDays(config.spanDuration == 1 ? -1 : -7);
+        spanEnd = spanEnd.addDays(config.spanDuration == 1 ? -1 : -7);
         loadEvents();
     });
     QObject::connect(rightShortcut, &QShortcut::activated, [this]() {
-        spanStart = spanStart.addDays(spanDuration == 1 ? 1 : 7);
-        spanEnd = spanEnd.addDays(spanDuration == 1 ? 1 : 7);
+        spanStart = spanStart.addDays(config.spanDuration == 1 ? 1 : 7);
+        spanEnd = spanEnd.addDays(config.spanDuration == 1 ? 1 : 7);
         loadEvents();
     });
     QObject::connect(todayShortcut, &QShortcut::activated, [this]() {
@@ -110,13 +61,13 @@ void Calendar::loadUI()
     settings = new HeaderButton(HeaderButton::Type::Settings, header);
 
     QObject::connect(left, &HeaderButton::clicked, [this]() {
-        spanStart = spanStart.addDays(spanDuration == 1 ? -1 : -7);
-        spanEnd = spanEnd.addDays(spanDuration == 1 ? -1 : -7);
+        spanStart = spanStart.addDays(config.spanDuration == 1 ? -1 : -7);
+        spanEnd = spanEnd.addDays(config.spanDuration == 1 ? -1 : -7);
         loadEvents();
     });
     QObject::connect(right, &HeaderButton::clicked, [this]() {
-        spanStart = spanStart.addDays(spanDuration == 1 ? 1 : 7);
-        spanEnd = spanEnd.addDays(spanDuration == 1 ? 1 : 7);
+        spanStart = spanStart.addDays(config.spanDuration == 1 ? 1 : 7);
+        spanEnd = spanEnd.addDays(config.spanDuration == 1 ? 1 : 7);
         loadEvents();
     });
     QObject::connect(today, &HeaderButton::clicked, [this]() {
@@ -148,12 +99,12 @@ void Calendar::loadUI()
     contentHeader->setFixedHeight(30);
     contentHeaderLay = new QHBoxLayout(contentHeader); 
 
-    for (quint8 i = 0 ; i < (spanDuration > 7 ? 8 : spanDuration + 1) ; i++) {
+    for (quint8 i = 0 ; i < (config.spanDuration > 7 ? 8 : config.spanDuration + 1) ; i++) {
         QLabel *day = new QLabel(contentHeader);
         if (i == 0) {
             day->setFixedWidth(offset);
         } else {
-            day->setText((spanDuration == 1 ? days[currentDate.dayOfWeek()] : days[i]) + QString(" ") + QString::number(spanStart.addDays(i).date().day()));
+            day->setText((config.spanDuration == 1 ? days[currentDate.dayOfWeek()] : days[i]) + QString(" ") + QString::number(spanStart.addDays(i).date().day()));
             day->setFixedWidth(columnWidth);
             day->setAlignment(Qt::AlignCenter);
             day->setProperty("class", "calendar-day");
@@ -239,7 +190,7 @@ void Calendar::resetSpan()
     month = spanStart.date().month();
     year = spanStart.date().year();
     reset = true;
-    switch (spanType)
+    switch (config.spanType)
     {
         case SpanType::Month:
             spanStart = spanStart.addDays(1 - spanStart.date().day());
@@ -249,55 +200,21 @@ void Calendar::resetSpan()
         case SpanType::Week:
             spanStart = spanStart.addDays(1 - spanStart.date().dayOfWeek());
     }
-    spanEnd = QDateTime(spanStart.date().addDays(spanDuration), QTime(0, 0));
+    spanEnd = QDateTime(spanStart.date().addDays(config.spanDuration), QTime(0, 0));
 }
 
 void Calendar::resetCalendars()
 {
-    checkDataFolder();
-
-    for (QString url : getICSUrls()) {
+    for (QString url : config.getICSUrls()) {
         loadRemoteICS(url);
     }
 
-    for (QString filename : getICSFilePaths()) {
-        QFile file(calendarFolderPath + "ics/" + filename);
+    for (QString filename : config.getICSFilePaths()) {
+        QFile file = config.getICSFile(filename);
         file.open(QFile::ReadOnly);
         loadICS(file.readAll(), filename, QUrl());
+        file.close();
     }
-}
-
-bool Calendar::addToConfig(QString name, QVariant value)
-{
-    checkDataFolder();
-
-    bool found = false;
-    QStringList configLines;
-    QString configLine = name + ":" + value.toString();
-    QFile configFile(calendarFolderPath + "config.txt");
-    if (configFile.open(QFile::ReadOnly)) {
-        QString config = configFile.readAll();
-        configLines = config.split('\n', Qt::SplitBehaviorFlags::SkipEmptyParts);
-        for (quint64 i = 0 ; i < configLines.size() ; i++) {
-            if (configLines[i].startsWith(name)) {
-                configLines[i] = configLine;
-                found = true;
-            }
-        }
-    }
-    if (!found) {
-        configLines.append(configLine);
-    }
-    configFile.close();
-
-    bool ok = true;
-    if (configFile.open(QFile::WriteOnly)) {
-        configFile.write(configLines.join('\n').toStdString().c_str());
-    } else {
-        ok = false;
-    }
-    configFile.close();
-    return ok;
 }
 
 void Calendar::openSettings()
@@ -308,7 +225,7 @@ void Calendar::openSettings()
     } else {
         QHash<CalendarName, bool> calendarsEnabled;
         for (CalendarName name : calendarsComponents.keys()) {
-            calendarsEnabled[name] = !disabledCalendars[name];
+            calendarsEnabled[name] = !config.disabledCalendars[name];
         }
 
         settingsPopUp = new Settings(calendarsEnabled, this);
@@ -322,18 +239,18 @@ void Calendar::openSettings()
         });
 
         QObject::connect(settingsPopUp, &Settings::calendarTypeClicked, [this](quint8 index) {
-            if (index + 1 == (quint8)spanType) return;
+            if (index + 1 == (quint8)config.spanType) return;
 
             if (index + 1 == (quint8)SpanType::Month) return; // TODO : implement month calendars
 
-            if (spanType == SpanType::Day) {
+            if (config.spanType == SpanType::Day) {
                 spanStart = spanStart.addDays(1 - spanStart.date().dayOfWeek());
             }
 
-            spanType = (SpanType)(index + 1);
-            spanDuration = typeDuration[spanType];
-            spanEnd = spanStart.addDays(spanDuration - 1);
-            addToConfig("spanType", (qint32)spanType);
+            config.spanType = (SpanType)(index + 1);
+            config.spanDuration = config.typeDuration[config.spanType];
+            spanEnd = spanStart.addDays(config.spanDuration - 1);
+            config.add("spanType", (qint32)config.spanType);
 
             qsizetype s = dayLabels.size();
             for (qsizetype i = s - 1 ; i > 0 ; i--) {
@@ -341,7 +258,7 @@ void Calendar::openSettings()
                 dayLabels.remove(i);
             }
 
-            for (quint8 i = 1 ; i < (spanDuration > 7 ? 8 : spanDuration + 1) ; i++) {
+            for (quint8 i = 1 ; i < (config.spanDuration > 7 ? 8 : config.spanDuration + 1) ; i++) {
                 QLabel *day = new QLabel(contentHeader);
                 day->setText(days[i] + QString(" ") + QString::number(spanStart.addDays(i).date().day()));
                 day->setFixedWidth(columnWidth);
@@ -379,105 +296,15 @@ void Calendar::openSettings()
             }
             
             if (enabled) {
-                disabledCalendars.remove(name);
+                config.disabledCalendars.remove(name);
             } else {
-                disabledCalendars[name] = true;
+                config.disabledCalendars[name] = true;
             }
-            addToConfig("disabledCalendars", disabledCalendars);
+            config.add("config.disabledCalendars", config.disabledCalendars);
 
             loadEvents();
         });
     }
-}
-
-bool Calendar::addToConfig(QString name, QHash<CalendarName, bool> value)
-{
-    checkDataFolder();
-
-    QString configLine = name + ":[";
-    qsizetype i = 0;
-    for (CalendarName name : value.keys()) {
-        i++;
-        configLine.append("(" + name.first + "/" + QUrl::toPercentEncoding(name.second.url()) + ")");
-        if (i < value.size()) {
-            configLine.append(',');
-        }
-    }
-    configLine.append(']');
-
-    bool found = false;
-    QStringList configLines;
-    QFile configFile(calendarFolderPath + "config.txt");
-    if (configFile.open(QFile::ReadOnly)) {
-        QString config = configFile.readAll();
-        configLines = config.split('\n', Qt::SplitBehaviorFlags::SkipEmptyParts);
-        for (quint64 i = 0 ; i < configLines.size() ; i++) {
-            if (configLines[i].startsWith(name)) {
-                configLines[i] = configLine;
-                found = true;
-            }
-        }
-    }
-    if (!found) {
-        configLines.append(configLine);
-    }
-    configFile.close();
-
-    bool ok = true;
-    if (configFile.open(QFile::WriteOnly)) {
-        configFile.write(configLines.join('\n').toStdString().c_str());
-    } else {
-        ok = false;
-    }
-    configFile.close();
-    return ok;
-}
-
-void Calendar::checkDataFolder()
-{
-    if (dataFolderPath.isNull()) {
-        dataFolderPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        dataFolder = QDir(dataFolderPath);
-        calendarFolderPath = dataFolderPath + "/calendar/";
-
-        QStringList splits = dataFolderPath.split('/');
-        splits.removeLast();
-        appdataPath = splits.join('/');
-    }
-
-    
-    if (!dataFolder.exists())
-        QDir(appdataPath).mkdir("Plume");
-
-    if (!QDir(calendarFolderPath).exists())
-        dataFolder.mkdir("calendar");
-    
-    if (!QFileInfo(calendarFolderPath + "config.txt").isFile())
-        QFile(calendarFolderPath + "config.txt").open(QFile::WriteOnly);
-
-    if (!QFileInfo(calendarFolderPath + "urls").isFile())
-        QFile(calendarFolderPath + "urls").open(QFile::WriteOnly);
-
-    if (!QDir(calendarFolderPath + "ics").exists())
-        QDir(calendarFolderPath).mkdir("ics");
-}
-
-
-QStringList Calendar::getICSUrls()
-{
-    QFile urlsFile(calendarFolderPath + "urls");
-    QStringList urls;
-    if (urlsFile.open(QFile::ReadOnly)) {
-        QString rawUrls = urlsFile.readAll();
-        if (!rawUrls.isNull())
-            urls = rawUrls.split('\n');
-    }
-    return urls;
-}
-
-QStringList Calendar::getICSFilePaths()
-{
-    return QDir(calendarFolderPath + "ics").entryList(QDir::Filter::Files);
 }
 
 void Calendar::loadRemoteICS(QString url)
@@ -522,7 +349,7 @@ QList<Event *> intersections(QHash<Event *,Timestamp> pairs, Timestamp t)
 void Calendar::loadICS(QString content, QString name, QUrl url)
 {
     bool found = false;
-    for (CalendarName cname : disabledCalendars.keys()) {
+    for (CalendarName cname : config.disabledCalendars.keys()) {
         if (cname.first == name || cname.second == url) {
             found = true;
             break;
@@ -579,7 +406,7 @@ void Calendar::loadEvents()
     eventList.clear();
 
     for (quint8 i = 1 ; i < dayLabels.size() ; i++) {
-        reinterpret_cast<QLabel *>(dayLabels[i])->setText((spanDuration == 1 ? days[spanStart.date().dayOfWeek()] : days[i]) + QString(" ") + QString::number(spanStart.addDays(i - 1).date().day()));
+        reinterpret_cast<QLabel *>(dayLabels[i])->setText((config.spanDuration == 1 ? days[spanStart.date().dayOfWeek()] : days[i]) + QString(" ") + QString::number(spanStart.addDays(i - 1).date().day()));
     }
     if (spanStart.date().month() != month || spanStart.date().year() != year || reset) {
         month = spanStart.date().month();
@@ -591,7 +418,7 @@ void Calendar::loadEvents()
 
     QList<Event *> actualEvents;
     QDate date = spanStart.date();
-    for (quint8 i = 0 ; i < spanDuration ; i++) {
+    for (quint8 i = 0 ; i < config.spanDuration ; i++) {
         auto componentsDate = components[date];
         for (auto c : componentsDate.keys()) {
             if (hiddenComponents[c]) continue;
@@ -671,8 +498,8 @@ void Calendar::updateSizes()
 {
     QSize contentSize = content->size();
     int width = contentSize.width();
-    columnWidth = (width - 30) / spanDuration;
-    offset = 30 + (width - 30) % spanDuration;
+    columnWidth = (width - 30) / config.spanDuration;
+    offset = 30 + (width - 30) % config.spanDuration;
 
 
     hourContainer->setFixedHeight(rowHeight);

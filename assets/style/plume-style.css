@@ -3,19 +3,20 @@
 }
 
 .bottombar {
-    background-color: blue;
+    background-color: rgb(207, 176, 155);
 }
 
 .bar-button {
-    background-color: green;
+    background-color: rgb(224, 198, 180);
     font-family: "Whitney"; 
     font-size: 16px;
     color: #ffffff;
     border-radius: 32px;
+    border: 4px solid rgb(216, 187, 168);
 }
 
 .home {
-    background-color: yellow;
+    background-color: #ffffff;
 }
 
 .calendar {

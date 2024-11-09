@@ -91,7 +91,7 @@ private:
 
     QTimer *refreshTimer = nullptr;
 
-    Config config;
+    CalendarConfig config;
 
     qint32 columnWidth = 100;
     qint32 rowHeight = 60;

@@ -6,10 +6,10 @@
 
 #include "typedefs.h"
 
-class Config {
+class CalendarConfig {
 
 public:
-    Config() = default;
+    CalendarConfig() = default;
 
     void load();
     bool add(QString name, QVariant value);

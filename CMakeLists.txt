@@ -31,6 +31,8 @@ set(SOURCES
     "src/widgets/calendar/config.cpp"
     "src/widgets/common/button.cpp"
     "src/widgets/mail/mail.cpp"
+    "src/widgets/mail/login.cpp"
+    "src/widgets/mail/config.cpp"
 )
 
 set(HEADERS
@@ -50,6 +52,9 @@ set(HEADERS
     "src/widgets/calendar/config.h"
     "src/widgets/common/button.h"
     "src/widgets/mail/mail.h"
+    "src/widgets/mail/login.h"
+    "src/widgets/mail/api.h"
+    "src/widgets/mail/config.h"
 )
 
 include_directories(

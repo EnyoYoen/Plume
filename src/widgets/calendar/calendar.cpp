@@ -314,7 +314,7 @@ void Calendar::loadRemoteICS(QString url)
     QNetworkRequest request = QNetworkRequest(QUrl(url));
     QNetworkReply *reply = network.get(request);
     QObject::connect(reply, &QNetworkReply::finished, [this, reply, url]() {
-        if (!reply->errorString().isNull()) {
+        if (reply->error() == QNetworkReply::NoError) {
             QByteArray replyContent = reply->readAll();
             loadICS(replyContent, QString(), QUrl(url));
         }

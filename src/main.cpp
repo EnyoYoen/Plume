@@ -9,5 +9,9 @@ int main(int argc, char *argv[])
     Plume *plume = new Plume();
     plume->show();
 
-    return a.exec();
+    int ret = a.exec();
+
+    delete plume;
+
+    return ret;
 }

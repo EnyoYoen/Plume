@@ -3,7 +3,7 @@
 #include <QStandardPaths>
 #include <QFileInfo>
 
-void Config::load()
+void CalendarConfig::load()
 {
     typeDuration.insert(SpanType::None,      0);
     typeDuration.insert(SpanType::Day,       1);
@@ -50,7 +50,7 @@ void Config::load()
     spanDuration = typeDuration[spanType];
 }
 
-bool Config::add(QString name, QVariant value)
+bool CalendarConfig::add(QString name, QVariant value)
 {
     checkDataFolder();
 
@@ -83,7 +83,7 @@ bool Config::add(QString name, QVariant value)
     return ok;
 }
 
-bool Config::add(QString name, QHash<CalendarName, bool> value)
+bool CalendarConfig::add(QString name, QHash<CalendarName, bool> value)
 {
     checkDataFolder();
 
@@ -127,7 +127,7 @@ bool Config::add(QString name, QHash<CalendarName, bool> value)
 }
 
 
-void Config::checkDataFolder()
+void CalendarConfig::checkDataFolder()
 {
     if (dataFolderPath.isNull()) {
         dataFolderPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
@@ -156,13 +156,13 @@ void Config::checkDataFolder()
         QDir(calendarFolderPath).mkdir("ics");
 }
 
-QFile Config::getICSFile(QString name) {
+QFile CalendarConfig::getICSFile(QString name) {
     checkDataFolder();
 
     return QFile(calendarFolderPath + "ics/" + name);
 }
 
-QStringList Config::getICSUrls()
+QStringList CalendarConfig::getICSUrls()
 {
     checkDataFolder();
 
@@ -176,7 +176,7 @@ QStringList Config::getICSUrls()
     return urls;
 }
 
-QStringList Config::getICSFilePaths()
+QStringList CalendarConfig::getICSFilePaths()
 {
     checkDataFolder();
 

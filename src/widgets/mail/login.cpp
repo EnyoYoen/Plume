@@ -388,7 +388,7 @@ void Login::getFolders() {
                     f.id = folder.toObject()["id"].toVariant().toLongLong();
                     f.color = folder.toObject()["color"].toVariant().toLongLong();
                     f.deletable = folder.toObject()["deletable"].toBool();
-                    this->folders.append(f);
+                    this->folders.insert(f.id, f);
                 }
                 emit foldersLoaded(folders);
             }
@@ -437,7 +437,7 @@ void Login::getContacts() {
                         c.rev = contact[i+1].toLongLong();
                     }
                 }
-                contacts.append(c);
+                contacts.insert(c.id, c);
             }
             emit contactsLoaded(contacts);
         }

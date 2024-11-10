@@ -35,12 +35,16 @@ public:
     void getContacts();
     void getMails(qint64 offset/*, qint64 lastId, qint64 folderId, quint8 limit*/); // TODO: add parameters for folder and limit
 
+    QHash<qint64, Folder> folders;
+    QHash<qint64, Contact> contacts;
+    QList<MailData> mails;
+
 signals:
     void loginEnd(Status status);
     void connected(Status status);
 
-    void foldersLoaded(QList<Folder> folders);
-    void contactsLoaded(QList<Contact> contacts);
+    void foldersLoaded(QHash<qint64, Folder>& folders);
+    void contactsLoaded(QHash<qint64, Contact>& contacts);
     void mailsLoaded(QList<MailData> mails);
 
 private:
@@ -63,8 +67,4 @@ private:
     QString agimus;
     QString zmCRSF;
     QHash<QString, QString> cookies;
-
-    QList<Folder> folders;
-    QList<Contact> contacts;
-    QList<MailData> mails;
 };

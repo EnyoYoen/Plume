@@ -199,3 +199,19 @@ QScrollArea > QWidget > QWidget {
 .mail {
     background-color: red;
 }
+
+.mail-preview {
+    background-color: green;
+}
+
+.mail-preview-sender {
+    background-color: blue;
+}
+
+.mail-preview-subject {
+    background-color: yellow;
+}
+
+.mail-preview-date {
+    background-color: orange;
+}
